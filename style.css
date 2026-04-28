@@ -1,62 +1,272 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-    background-color: #2f3136;
-    color: white;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
+  background: #1e2024;
+  color: #dcddde;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 1rem;
 }
 
 .container {
-    background-color: #36393f;
-    padding: 2rem;
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    width: 90%;
-    max-width: 400px;
-    text-align: center;
+  background: #2f3136;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 420px;
+  margin: auto;
 }
 
-input, button, id {
-    width: 100%;
-    padding: 12px;
-    margin: 10px 0;
-    border-radius: 5px;
-    border: none;
-    box-sizing: border-box;
+/* ══ ЕКРАНИ ══ */
+.screen { display: none; }
+.screen.active { display: block; }
+
+h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-align: center;
+  margin-bottom: 1.25rem;
+  color: #fff;
 }
 
-input { background: #202225; color: white; }
-
-#rooms-list {
-    background: #202225;
-    border-radius: 5px;
-    padding: 5px;
-    max-height: 150px;
-    overflow-y: auto;
-    margin-bottom: 15px;
+.screen-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #fff;
 }
 
+/* ══ ІНПУТИ ══ */
+input[type="text"],
+input[type="number"],
+select {
+  width: 100%;
+  padding: 11px 14px;
+  margin-bottom: 10px;
+  background: #202225;
+  color: #dcddde;
+  border: 1px solid #40444b;
+  border-radius: 7px;
+  font-size: .95rem;
+  outline: none;
+  transition: border-color .2s;
+}
+input:focus, select:focus { border-color: #5865f2; }
+
+/* ══ КНОПКИ ══ */
+button {
+  width: 100%;
+  padding: 11px;
+  border: none;
+  border-radius: 7px;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+}
+button:active { transform: scale(.98); opacity: .85; }
+
+.btn-primary  { background: #5865f2; color: #fff; }
+.btn-green    { background: #3ba55c; color: #fff; flex: 1; }
+.btn-red      { background: #ed4245; color: #fff; flex: 1; }
+
+/* ══ ЛОБІ ══ */
+.room-list-wrap {
+  background: #202225;
+  border-radius: 7px;
+  padding: 10px;
+  margin-bottom: 12px;
+  max-height: 160px;
+  overflow-y: auto;
+}
 .room-item {
-    padding: 10px;
-    border-bottom: 1px solid #2f3136;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: .9rem;
 }
-
 .room-item:hover { background: #40444b; }
+.online-dot { color: #3ba55c; font-size: .8rem; }
 
-#word-display {
-    font-size: 2rem;
-    font-weight: bold;
-    margin: 30px 0;
-    min-height: 80px;
+.divider {
+  text-align: center;
+  font-size: .8rem;
+  color: #72767d;
+  margin: 8px 0;
 }
 
-#timer { font-size: 1.5rem; color: #43b581; }
+.section-label {
+  font-size: .78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: #72767d;
+  margin-bottom: 6px;
+}
 
-.btn-green { background-color: #43b581; color: white; cursor: pointer; }
-.btn-red { background-color: #f04747; color: white; cursor: pointer; }
+.player-row, .team-row-assign {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px solid #40444b;
+  font-size: .9rem;
+}
+.player-row:last-child, .team-row-assign:last-child { border-bottom: none; }
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: .9rem;
+}
+.settings-row input, .settings-row select { width: 100px; margin: 0; }
+.room-name-badge {
+  text-align: center;
+  font-size: .8rem;
+  color: #72767d;
+  margin-bottom: 12px;
+}
+
+/* ══ БРИФІНГ ══ */
+.brief-pair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 1rem 0;
+}
+.brief-role { text-align: center; }
+.big-name { font-size: 1.1rem; font-weight: 600; margin-top: 4px; }
+.brief-arrow { font-size: 1.5rem; color: #72767d; }
+.my-role-banner { text-align: center; margin: .5rem 0; }
+
+/* ══ ЧІПИ РОЛЕЙ ══ */
+.role-chip {
+  display: inline-block;
+  font-size: .78rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+.chip-explain { background: #f0b232; color: #1e2024; }
+.chip-guess   { background: #5865f2; color: #fff; }
+.chip-watch   { background: #40444b; color: #b9bbbe; }
+
+/* ══ РАУНД ══ */
+.round-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.round-label-small { font-size: .85rem; color: #72767d; }
+.timer {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #3ba55c;
+  transition: color .4s;
+}
+
+.timer-bar-bg {
+  background: #40444b;
+  border-radius: 4px;
+  height: 5px;
+  margin-bottom: 1rem;
+}
+.timer-bar {
+  height: 5px;
+  border-radius: 4px;
+  background: #3ba55c;
+  transition: width .9s linear, background .5s;
+}
+.timer-bar.warn   { background: #f0b232; }
+.timer-bar.danger { background: #ed4245; }
+
+.word-display {
+  font-size: 2.2rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 1px;
+  margin: 1rem 0;
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.controls { display: flex; gap: 10px; margin-top: .5rem; }
+
+.challenge-banner {
+  text-align: center;
+  background: #ed4245;
+  color: #fff;
+  border-radius: 7px;
+  padding: 10px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.round-stats {
+  display: flex;
+  gap: 16px;
+  font-size: .9rem;
+  color: #72767d;
+  margin-top: .75rem;
+}
+
+.round-log { margin-top: 6px; }
+.log-item {
+  font-size: .85rem;
+  padding: 3px 0;
+  border-bottom: 1px solid #40444b;
+}
+.log-plus { color: #3ba55c; }
+.log-minus { color: #ed4245; }
+
+/* ══ РАХУНОК ══ */
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px solid #40444b;
+  font-size: .9rem;
+}
+.score-row:last-child { border-bottom: none; }
+.score-val { font-weight: 700; color: #fff; }
+
+/* ══ РЕЗУЛЬТАТ ══ */
+.result-detail { margin-bottom: 8px; }
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: .9rem;
+  border-bottom: 1px solid #40444b;
+}
+
+/* ══ ФІНАЛ ══ */
+.winner-card {
+  background: #202225;
+  border-radius: 10px;
+  padding: 1.25rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.winner-name {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #f0b232;
+  margin: 6px 0;
+}
+
+.muted { color: #72767d; font-size: .88rem; }

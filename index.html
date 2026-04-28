@@ -1,48 +1,171 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elias Online - IT Edition</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Еліас Онлайн</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div id="setup">
-            <h1>ALIAS ONLINE</h1>
-            <input type="text" id="username" placeholder="Твій нік">
-            
-            <div id="room-list-container">
-                <h3>Доступні кімнати:</h3>
-                <div id="rooms-list">Завантаження списку...</div>
-            </div>
+<div class="container">
 
-            <div id="create-room-form">
-                <input type="text" id="room-id" placeholder="Назва кімнати">
-                <div class="settings-row">
-                    <label>Таймер (сек):</label>
-                    <input type="number" id="round-time" value="60" min="10">
-                </div>
-                <button id="join-btn">СТВОРИТИ / УВІЙТИ</button>
-            </div>
-        </div>
+  <!-- ══ ЕКРАН 1: ВХІД ══ -->
+  <div id="screen-login" class="screen active">
+    <h1>ЕЛІАС</h1>
+    <input type="text" id="username" placeholder="Твій нік" maxlength="20">
 
-        <div id="game" style="display: none;">
-            <div id="timer">60s</div>
-            <div id="word-display">Чекаємо на старт...</div>
-            
-            <div id="challenge-zone" style="display: none;">
-                <p>⚠️ ЙДЕ ОСКАРЖЕННЯ...</p>
-            </div>
-
-            <div id="controls" style="display: none;">
-                <button id="correct-btn" class="btn-green">✅ Вгадали</button>
-                <button id="skip-btn" class="btn-red">❌ Пропустити</button>
-            </div>
-
-            <div id="scoreboard"></div>
-        </div>
+    <div class="room-list-wrap">
+      <div class="section-label">Активні кімнати</div>
+      <div id="rooms-list"><span class="muted">Завантаження...</span></div>
     </div>
-    <script type="module" src="script.js"></script>
+
+    <div class="divider">або створи нову</div>
+
+    <input type="text" id="room-id" placeholder="Назва кімнати" maxlength="20">
+    <button id="join-btn" class="btn-primary">Увійти / Створити</button>
+  </div>
+
+  <!-- ══ ЕКРАН 2: ЛОБІ ══ -->
+  <div id="screen-lobby" class="screen">
+    <div class="screen-title">Лобі</div>
+    <div class="room-name-badge" id="lobby-room-name"></div>
+
+    <div class="section-label">Гравці</div>
+    <div id="lobby-players"></div>
+
+    <!-- Налаштування (тільки хост бачить) -->
+    <div id="host-settings" style="display:none">
+      <div class="section-label" style="margin-top:1rem">Налаштування</div>
+      <div class="settings-row">
+        <label>Режим гри</label>
+        <select id="game-mode">
+          <option value="solo">Особистий (3+ гравці)</option>
+          <option value="team">Командний (4+ гравці)</option>
+        </select>
+      </div>
+      <div id="team-settings" style="display:none">
+        <div class="section-label" style="margin-top:.75rem">Команди</div>
+        <div id="team-assignment"></div>
+      </div>
+      <div class="settings-row">
+        <label>Час раунду (сек)</label>
+        <input type="number" id="round-time" value="60" min="15" max="180">
+      </div>
+      <div class="settings-row">
+        <label>Кількість раундів</label>
+        <input type="number" id="round-count" value="6" min="2" max="30">
+      </div>
+      <button id="start-btn" class="btn-primary" style="margin-top:1rem">Розпочати гру</button>
+    </div>
+    <div id="guest-waiting" class="muted" style="display:none;margin-top:1rem">
+      Чекаємо поки хост розпочне гру...
+    </div>
+  </div>
+
+  <!-- ══ ЕКРАН 3: БРИФІНГ РАУНДУ ══ -->
+  <div id="screen-briefing" class="screen">
+    <div class="screen-title" id="brief-round-label"></div>
+
+    <div class="brief-pair">
+      <div class="brief-role">
+        <div class="role-chip chip-explain">Пояснює</div>
+        <div class="big-name" id="brief-explainer"></div>
+      </div>
+      <div class="brief-arrow">→</div>
+      <div class="brief-role">
+        <div class="role-chip chip-guess">Відгадує</div>
+        <div class="big-name" id="brief-guesser"></div>
+      </div>
+    </div>
+
+    <div id="brief-my-role" class="my-role-banner"></div>
+
+    <div class="section-label" style="margin-top:1rem">Рахунок</div>
+    <div id="brief-scores"></div>
+
+    <div id="brief-host-btn-wrap" style="display:none;margin-top:1rem">
+      <button id="brief-start-btn" class="btn-primary">Розпочати раунд</button>
+    </div>
+    <div id="brief-guest-wait" class="muted" style="display:none;margin-top:1rem">
+      Чекаємо хоста...
+    </div>
+  </div>
+
+  <!-- ══ ЕКРАН 4: РАУНД ══ -->
+  <div id="screen-round" class="screen">
+    <div class="round-header">
+      <div id="round-label" class="round-label-small"></div>
+      <div id="timer" class="timer">60</div>
+    </div>
+
+    <div class="timer-bar-bg"><div id="timer-bar" class="timer-bar"></div></div>
+
+    <!-- Ведучий -->
+    <div id="view-explainer" style="display:none">
+      <div class="role-chip chip-explain" style="margin-bottom:.5rem">Ти пояснюєш</div>
+      <div id="word-display" class="word-display">—</div>
+      <div class="controls">
+        <button id="correct-btn" class="btn-green">Вгадали +1</button>
+        <button id="skip-btn" class="btn-red">Пропустити −1</button>
+      </div>
+    </div>
+
+    <!-- Відгадувач -->
+    <div id="view-guesser" style="display:none">
+      <div class="role-chip chip-guess" style="margin-bottom:.5rem">Ти відгадуєш</div>
+      <div class="word-display muted" style="font-size:1.1rem">Слухай і вгадуй!</div>
+    </div>
+
+    <!-- Спостерігач / команда -->
+    <div id="view-observer" style="display:none">
+      <div class="role-chip chip-watch" style="margin-bottom:.5rem">Ти спостерігаєш</div>
+      <div class="word-display muted" style="font-size:1rem" id="observer-msg">Цей раунд відпочиваєш</div>
+    </div>
+
+    <!-- Оскарження -->
+    <div id="challenge-zone" style="display:none">
+      <div class="challenge-banner">
+        ⚠️ Оскарження — <span id="challenge-countdown">5</span>с
+      </div>
+      <button id="veto-btn" class="btn-red" style="display:none">Анулювати бал!</button>
+    </div>
+
+    <!-- Лог + рахунок -->
+    <div class="round-stats">
+      <span>✅ <span id="stat-correct">0</span></span>
+      <span>❌ <span id="stat-skip">0</span></span>
+    </div>
+    <div id="round-log" class="round-log"></div>
+  </div>
+
+  <!-- ══ ЕКРАН 5: РЕЗУЛЬТАТ РАУНДУ ══ -->
+  <div id="screen-result" class="screen">
+    <div class="screen-title">Раунд завершено</div>
+    <div id="result-detail" class="result-detail"></div>
+    <div class="section-label" style="margin-top:1rem">Рахунок</div>
+    <div id="result-scores"></div>
+    <div id="result-host-btn" style="display:none;margin-top:1rem">
+      <button id="next-round-btn" class="btn-primary"></button>
+    </div>
+    <div id="result-guest-wait" class="muted" style="display:none;margin-top:1rem">
+      Чекаємо хоста...
+    </div>
+  </div>
+
+  <!-- ══ ЕКРАН 6: ФІНАЛ ══ -->
+  <div id="screen-final" class="screen">
+    <div class="screen-title">Гра завершена!</div>
+    <div class="winner-card">
+      <div class="muted" style="font-size:.85rem">Переможець</div>
+      <div class="winner-name" id="final-winner"></div>
+      <div class="muted" id="final-winner-score"></div>
+    </div>
+    <div class="section-label">Підсумковий рахунок</div>
+    <div id="final-scores"></div>
+    <button id="play-again-btn" class="btn-primary" style="margin-top:1.5rem">Зіграти ще раз</button>
+  </div>
+
+</div>
+<script type="module" src="script.js"></script>
 </body>
 </html>
