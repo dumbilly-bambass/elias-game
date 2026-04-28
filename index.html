@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elias Firebase IT</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="setup">
+        <h1>ELIAS ONLINE</h1>
+        <input type="text" id="username" placeholder="Твій нік">
+        <input type="text" id="room-id" placeholder="Код кімнати">
+        <select id="game-mode">
+            <option value="personal">Особистий режим</option>
+            <option value="team">Командний режим</option>
+        </select>
+        <button id="join-btn">УВІЙТИ</button>
+    </div>
+
+    <div id="game" style="display:none">
+        <div id="word-display">Очікування...</div>
+        <div id="timer">60s</div>
+        <div id="controls">
+            <button class="btn-green" id="correct-btn">✅ ВГАДАЛИ</button>
+            <button class="btn-red" id="skip-btn">❌ ПРОПУСК</button>
+        </div>
+        <div id="challenge-zone" style="display:none">
+            <button class="btn-warn" id="challenge-btn">ОСКАРЖИТИ! (5с)</button>
+        </div>
+        <div id="scoreboard"></div>
+    </div>
+    <script type="module" src="script.js"></script>
+</body>
+</html>

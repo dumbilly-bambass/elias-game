@@ -1,0 +1,7 @@
+body { background: #2f3136; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+input, select, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 5px; border: none; font-weight: bold; }
+#word-display { background: #40444b; padding: 40px; font-size: 32px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #7289da; min-height: 50px; display: flex; align-items: center; justify-content: center; }
+.btn-green { background: #43b581; color: white; cursor: pointer; }
+.btn-red { background: #f04747; color: white; cursor: pointer; }
+.btn-warn { background: #faa61a; animation: pulse 0.5s infinite; color: white; }
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
