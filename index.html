@@ -12,30 +12,29 @@
   <!-- ══ ЕКРАН 1: ВХІД ══ -->
   <div id="screen-login" class="screen active">
     <h1>ЕЛІАС</h1>
-    <input type="text" id="username" placeholder="Твій нік" maxlength="20">
-
+    <input type="text" id="username" placeholder="Твій нік" maxlength="20" autocomplete="off">
     <div class="room-list-wrap">
       <div class="section-label">Активні кімнати</div>
       <div id="rooms-list"><span class="muted">Завантаження...</span></div>
     </div>
-
     <div class="divider">або створи нову</div>
-
-    <input type="text" id="room-id" placeholder="Назва кімнати" maxlength="20">
+    <input type="text" id="room-id" placeholder="Назва кімнати" maxlength="20" autocomplete="off">
     <button id="join-btn" class="btn-primary">Увійти / Створити</button>
   </div>
 
   <!-- ══ ЕКРАН 2: ЛОБІ ══ -->
   <div id="screen-lobby" class="screen">
-    <div class="screen-title">Лобі</div>
-    <div class="room-name-badge" id="lobby-room-name"></div>
+    <div class="screen-header">
+      <div class="screen-title" id="lobby-room-name">Лобі</div>
+      <button id="leave-lobby-btn" class="btn-leave">Вийти</button>
+    </div>
 
     <div class="section-label">Гравці</div>
     <div id="lobby-players"></div>
 
-    <!-- Налаштування (тільки хост бачить) -->
     <div id="host-settings" style="display:none">
-      <div class="section-label" style="margin-top:1rem">Налаштування</div>
+      <div class="section-label" style="margin-top:1.25rem">Налаштування</div>
+
       <div class="settings-row">
         <label>Режим гри</label>
         <select id="game-mode">
@@ -43,28 +42,65 @@
           <option value="team">Командний (4+ гравці)</option>
         </select>
       </div>
+
       <div id="team-settings" style="display:none">
-        <div class="section-label" style="margin-top:.75rem">Команди</div>
+        <div class="section-label" style="margin-top:.75rem">Розподіл по командах</div>
         <div id="team-assignment"></div>
       </div>
+
       <div class="settings-row">
         <label>Час раунду (сек)</label>
         <input type="number" id="round-time" value="60" min="15" max="180">
       </div>
       <div class="settings-row">
-        <label>Кількість раундів</label>
-        <input type="number" id="round-count" value="6" min="2" max="30">
+        <label>Ліміт балів</label>
+        <input type="number" id="score-limit" value="30" min="5" max="200">
       </div>
-      <button id="start-btn" class="btn-primary" style="margin-top:1rem">Розпочати гру</button>
+      <div id="team-round-row" class="settings-row" style="display:none">
+        <label>Макс. раундів</label>
+        <input type="number" id="round-count" value="10" min="2" max="60">
+      </div>
+      <div class="hint" id="end-hint"></div>
+
+      <!-- Словник -->
+      <div class="section-label" style="margin-top:1rem">Словник</div>
+      <div class="dict-tabs">
+        <button class="dict-tab active" data-tab="categories">Категорії</button>
+        <button class="dict-tab" data-tab="custom">Свої слова</button>
+        <button class="dict-tab" data-tab="json">JSON файл</button>
+      </div>
+      <div id="dict-categories" class="dict-panel active">
+        <div id="categories-grid" class="categories-grid"></div>
+      </div>
+      <div id="dict-custom" class="dict-panel">
+        <textarea id="custom-words" rows="5"
+          placeholder="Слова через кому або кожне з нового рядка"></textarea>
+        <div class="hint">Рекомендовано мінімум 20 слів</div>
+      </div>
+      <div id="dict-json" class="dict-panel">
+        <label class="file-label" id="json-file-label">
+          Обрати JSON файл
+          <input type="file" id="json-file" accept=".json" style="display:none">
+        </label>
+        <div class="hint">Формат: <code>["Слово1","Слово2",...]</code></div>
+        <div id="json-preview" class="muted" style="margin-top:6px;font-size:.82rem"></div>
+      </div>
+
+      <button id="start-btn" class="btn-primary" style="margin-top:1.25rem">Розпочати гру</button>
     </div>
-    <div id="guest-waiting" class="muted" style="display:none;margin-top:1rem">
-      Чекаємо поки хост розпочне гру...
+
+    <div id="guest-waiting" style="display:none;margin-top:1rem">
+      <div class="muted">Чекаємо поки хост розпочне гру...</div>
+      <div id="guest-config-preview" style="margin-top:.75rem;font-size:.88rem;color:#b9bbbe"></div>
     </div>
   </div>
 
-  <!-- ══ ЕКРАН 3: БРИФІНГ РАУНДУ ══ -->
+  <!-- ══ ЕКРАН 3: БРИФІНГ ══ -->
   <div id="screen-briefing" class="screen">
-    <div class="screen-title" id="brief-round-label"></div>
+    <div class="screen-header">
+      <div class="screen-title" id="brief-round-label">Раунд</div>
+      <button id="leave-game-btn" class="btn-leave">Вийти</button>
+    </div>
 
     <div class="brief-pair">
       <div class="brief-role">
@@ -81,9 +117,9 @@
     <div id="brief-my-role" class="my-role-banner"></div>
 
     <div class="section-label" style="margin-top:1rem">Рахунок</div>
-    <div id="brief-scores"></div>
+    <div id="brief-scores" class="scores-list"></div>
 
-    <div id="brief-host-btn-wrap" style="display:none;margin-top:1rem">
+    <div id="brief-host-btn-wrap" style="display:none;margin-top:1.25rem">
       <button id="brief-start-btn" class="btn-primary">Розпочати раунд</button>
     </div>
     <div id="brief-guest-wait" class="muted" style="display:none;margin-top:1rem">
@@ -97,55 +133,67 @@
       <div id="round-label" class="round-label-small"></div>
       <div id="timer" class="timer">60</div>
     </div>
-
     <div class="timer-bar-bg"><div id="timer-bar" class="timer-bar"></div></div>
 
     <!-- Ведучий -->
     <div id="view-explainer" style="display:none">
-      <div class="role-chip chip-explain" style="margin-bottom:.5rem">Ти пояснюєш</div>
+      <div class="role-chip chip-explain" style="margin:.25rem 0 .5rem">Ти пояснюєш</div>
       <div id="word-display" class="word-display">—</div>
-      <div class="controls">
-        <button id="correct-btn" class="btn-green">Вгадали +1</button>
-        <button id="skip-btn" class="btn-red">Пропустити −1</button>
+      <div id="controls-active" class="controls">
+        <button id="correct-btn" class="btn-green">✅ Вгадали</button>
+        <button id="skip-btn" class="btn-red">❌ Пропустити</button>
+      </div>
+      <div id="last-word-zone" style="display:none">
+        <div class="last-word-banner">Час вийшов — встигли вгадати?</div>
+        <div class="controls">
+          <button id="last-correct-btn" class="btn-green">Так +1</button>
+          <button id="last-no-btn" class="btn-red">Ні</button>
+        </div>
       </div>
     </div>
 
     <!-- Відгадувач -->
     <div id="view-guesser" style="display:none">
-      <div class="role-chip chip-guess" style="margin-bottom:.5rem">Ти відгадуєш</div>
-      <div class="word-display muted" style="font-size:1.1rem">Слухай і вгадуй!</div>
-    </div>
-
-    <!-- Спостерігач / команда -->
-    <div id="view-observer" style="display:none">
-      <div class="role-chip chip-watch" style="margin-bottom:.5rem">Ти спостерігаєш</div>
-      <div class="word-display muted" style="font-size:1rem" id="observer-msg">Цей раунд відпочиваєш</div>
-    </div>
-
-    <!-- Оскарження -->
-    <div id="challenge-zone" style="display:none">
-      <div class="challenge-banner">
-        ⚠️ Оскарження — <span id="challenge-countdown">5</span>с
+      <div class="role-chip chip-guess" style="margin:.25rem 0 .5rem">Ти відгадуєш</div>
+      <div class="word-display-hint">Слухай і вгадуй!</div>
+      <div id="guesser-last-zone" class="last-word-banner" style="display:none">
+        Час вийшов — чи встигли вгадати?
       </div>
-      <button id="veto-btn" class="btn-red" style="display:none">Анулювати бал!</button>
     </div>
 
-    <!-- Лог + рахунок -->
-    <div class="round-stats">
-      <span>✅ <span id="stat-correct">0</span></span>
-      <span>❌ <span id="stat-skip">0</span></span>
+    <!-- Спостерігач -->
+    <div id="view-observer" style="display:none">
+      <div class="role-chip chip-watch" style="margin:.25rem 0 .5rem">Ти відпочиваєш</div>
+      <div class="word-display-hint" id="observer-msg"></div>
     </div>
-    <div id="round-log" class="round-log"></div>
+
+    <!-- Рахунок та лог -->
+    <div class="round-bottom">
+      <div class="round-stats">
+        <div class="stat-item stat-correct">
+          <span class="stat-num" id="stat-correct">0</span>
+          <span class="stat-lbl">вгадано</span>
+        </div>
+        <div class="stat-item stat-skip">
+          <span class="stat-num" id="stat-skip">0</span>
+          <span class="stat-lbl">пропуск</span>
+        </div>
+      </div>
+      <div id="round-log" class="round-log"></div>
+    </div>
+
+    <div class="section-label" style="margin-top:.75rem">Рахунок</div>
+    <div id="round-scores" class="scores-list scores-compact"></div>
   </div>
 
-  <!-- ══ ЕКРАН 5: РЕЗУЛЬТАТ РАУНДУ ══ -->
+  <!-- ══ ЕКРАН 5: РЕЗУЛЬТАТ ══ -->
   <div id="screen-result" class="screen">
     <div class="screen-title">Раунд завершено</div>
     <div id="result-detail" class="result-detail"></div>
     <div class="section-label" style="margin-top:1rem">Рахунок</div>
-    <div id="result-scores"></div>
-    <div id="result-host-btn" style="display:none;margin-top:1rem">
-      <button id="next-round-btn" class="btn-primary"></button>
+    <div id="result-scores" class="scores-list"></div>
+    <div id="result-host-btn" style="display:none;margin-top:1.25rem">
+      <button id="next-round-btn" class="btn-primary">Наступний раунд</button>
     </div>
     <div id="result-guest-wait" class="muted" style="display:none;margin-top:1rem">
       Чекаємо хоста...
@@ -156,13 +204,16 @@
   <div id="screen-final" class="screen">
     <div class="screen-title">Гра завершена!</div>
     <div class="winner-card">
-      <div class="muted" style="font-size:.85rem">Переможець</div>
+      <div class="muted" style="font-size:.82rem;margin-bottom:4px">Переможець</div>
       <div class="winner-name" id="final-winner"></div>
-      <div class="muted" id="final-winner-score"></div>
+      <div class="winner-score" id="final-winner-score"></div>
     </div>
     <div class="section-label">Підсумковий рахунок</div>
-    <div id="final-scores"></div>
-    <button id="play-again-btn" class="btn-primary" style="margin-top:1.5rem">Зіграти ще раз</button>
+    <div id="final-scores" class="scores-list"></div>
+    <div style="display:flex;gap:10px;margin-top:1.25rem">
+      <button id="play-again-btn" class="btn-primary">Зіграти ще раз</button>
+      <button id="leave-final-btn" class="btn-secondary">На головну</button>
+    </div>
   </div>
 
 </div>

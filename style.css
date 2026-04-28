@@ -7,7 +7,6 @@ body {
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
   padding: 1rem;
 }
 
@@ -18,6 +17,7 @@ body {
   width: 100%;
   max-width: 420px;
   margin: auto;
+  min-height: 100px;
 }
 
 /* ══ ЕКРАНИ ══ */
@@ -33,61 +33,81 @@ h1 {
   color: #fff;
 }
 
-.screen-title {
-  font-size: 1.2rem;
-  font-weight: 600;
-  text-align: center;
+.screen-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1rem;
+}
+
+.screen-title {
+  font-size: 1.15rem;
+  font-weight: 600;
   color: #fff;
 }
 
 /* ══ ІНПУТИ ══ */
 input[type="text"],
 input[type="number"],
-select {
+select,
+textarea {
   width: 100%;
-  padding: 11px 14px;
+  padding: 10px 13px;
   margin-bottom: 10px;
   background: #202225;
   color: #dcddde;
   border: 1px solid #40444b;
   border-radius: 7px;
-  font-size: .95rem;
+  font-size: .93rem;
   outline: none;
   transition: border-color .2s;
+  font-family: inherit;
 }
-input:focus, select:focus { border-color: #5865f2; }
+input:focus, select:focus, textarea:focus { border-color: #5865f2; }
+textarea { resize: vertical; }
 
 /* ══ КНОПКИ ══ */
 button {
   width: 100%;
-  padding: 11px;
+  padding: 10px;
   border: none;
   border-radius: 7px;
-  font-size: .95rem;
+  font-size: .93rem;
   font-weight: 600;
   cursor: pointer;
   transition: opacity .15s, transform .1s;
+  font-family: inherit;
 }
-button:active { transform: scale(.98); opacity: .85; }
+button:active { transform: scale(.97); opacity: .8; }
 
-.btn-primary  { background: #5865f2; color: #fff; }
-.btn-green    { background: #3ba55c; color: #fff; flex: 1; }
-.btn-red      { background: #ed4245; color: #fff; flex: 1; }
+.btn-primary   { background: #5865f2; color: #fff; }
+.btn-secondary { background: #40444b; color: #dcddde; }
+.btn-green     { background: #3ba55c; color: #fff; flex: 1; }
+.btn-red       { background: #ed4245; color: #fff; flex: 1; }
+.btn-leave     {
+  background: transparent;
+  color: #72767d;
+  border: 1px solid #40444b;
+  width: auto;
+  padding: 5px 12px;
+  font-size: .82rem;
+}
+.btn-leave:hover { color: #ed4245; border-color: #ed4245; }
 
 /* ══ ЛОБІ ══ */
 .room-list-wrap {
   background: #202225;
   border-radius: 7px;
-  padding: 10px;
-  margin-bottom: 12px;
-  max-height: 160px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  max-height: 150px;
   overflow-y: auto;
 }
 .room-item {
   display: flex;
   justify-content: space-between;
-  padding: 8px 10px;
+  align-items: center;
+  padding: 7px 8px;
   border-radius: 5px;
   cursor: pointer;
   font-size: .9rem;
@@ -99,16 +119,17 @@ button:active { transform: scale(.98); opacity: .85; }
   text-align: center;
   font-size: .8rem;
   color: #72767d;
-  margin: 8px 0;
+  margin: 6px 0;
 }
 
 .section-label {
-  font-size: .78rem;
+  font-size: .75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .8px;
   color: #72767d;
-  margin-bottom: 6px;
+  margin-bottom: 7px;
+  margin-top: 2px;
 }
 
 .player-row, .team-row-assign {
@@ -120,6 +141,7 @@ button:active { transform: scale(.98); opacity: .85; }
   font-size: .9rem;
 }
 .player-row:last-child, .team-row-assign:last-child { border-bottom: none; }
+.player-row em, .score-name em { font-style: normal; color: #72767d; font-size: .82rem; }
 
 .settings-row {
   display: flex;
@@ -127,32 +149,102 @@ button:active { transform: scale(.98); opacity: .85; }
   justify-content: space-between;
   margin-bottom: 8px;
   font-size: .9rem;
+  gap: 8px;
 }
-.settings-row input, .settings-row select { width: 100px; margin: 0; }
-.room-name-badge {
-  text-align: center;
-  font-size: .8rem;
+.settings-row label { flex: 1; }
+.settings-row input,
+.settings-row select { width: 110px; margin: 0; flex-shrink: 0; }
+
+.hint {
+  font-size: .78rem;
   color: #72767d;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
+.hint code {
+  background: #202225;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+/* ══ СЛОВНИК ТАБИ ══ */
+.dict-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.dict-tab {
+  flex: 1;
+  padding: 6px;
+  background: #202225;
+  color: #72767d;
+  border-radius: 6px;
+  font-size: .82rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+.dict-tab.active {
+  background: #40444b;
+  color: #dcddde;
+  border-color: #5865f2;
+}
+.dict-panel { display: none; }
+.dict-panel.active { display: block; }
+
+.categories-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.cat-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .85rem;
+  cursor: pointer;
+  padding: 5px 8px;
+  background: #202225;
+  border-radius: 5px;
+}
+.cat-checkbox:hover { background: #40444b; }
+
+.file-label {
+  display: block;
+  padding: 10px;
+  background: #202225;
+  border: 1px dashed #40444b;
+  border-radius: 7px;
+  text-align: center;
+  cursor: pointer;
+  font-size: .88rem;
+  color: #b9bbbe;
+  margin-bottom: 6px;
+}
+.file-label:hover { border-color: #5865f2; color: #dcddde; }
 
 /* ══ БРИФІНГ ══ */
 .brief-pair {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 14px;
   margin: 1rem 0;
 }
 .brief-role { text-align: center; }
-.big-name { font-size: 1.1rem; font-weight: 600; margin-top: 4px; }
-.brief-arrow { font-size: 1.5rem; color: #72767d; }
+.big-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-top: 5px;
+  color: #fff;
+}
+.brief-arrow { font-size: 1.4rem; color: #72767d; }
 .my-role-banner { text-align: center; margin: .5rem 0; }
 
-/* ══ ЧІПИ РОЛЕЙ ══ */
+/* ══ РОЛЬ-ЧІПИ ══ */
 .role-chip {
   display: inline-block;
-  font-size: .78rem;
+  font-size: .75rem;
   font-weight: 600;
   padding: 3px 10px;
   border-radius: 20px;
@@ -161,18 +253,53 @@ button:active { transform: scale(.98); opacity: .85; }
 .chip-guess   { background: #5865f2; color: #fff; }
 .chip-watch   { background: #40444b; color: #b9bbbe; }
 
+/* ══ РАХУНОК — видимий ══ */
+.scores-list { margin-top: 2px; }
+
+.score-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  background: #202225;
+  font-size: .92rem;
+}
+.score-row.score-leader {
+  background: #2c2f0f;
+  border: 1px solid #5a5200;
+}
+.score-name { color: #b9bbbe; }
+.score-val  {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  min-width: 36px;
+  text-align: right;
+}
+.score-leader .score-val { color: #f0b232; }
+.score-leader .score-name { color: #dcddde; }
+
+/* Компактний рахунок під час раунду */
+.scores-compact .score-row { padding: 5px 10px; }
+.scores-compact .score-val { font-size: 1rem; }
+
 /* ══ РАУНД ══ */
 .round-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 .round-label-small { font-size: .85rem; color: #72767d; }
+
 .timer {
-  font-size: 2rem;
+  font-size: 2.2rem;
   font-weight: 700;
   color: #3ba55c;
+  min-width: 56px;
+  text-align: right;
   transition: color .4s;
 }
 
@@ -192,81 +319,107 @@ button:active { transform: scale(.98); opacity: .85; }
 .timer-bar.danger { background: #ed4245; }
 
 .word-display {
-  font-size: 2.2rem;
+  font-size: 2.4rem;
   font-weight: 700;
   text-align: center;
   letter-spacing: 1px;
-  margin: 1rem 0;
-  min-height: 70px;
+  margin: .75rem 0;
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
 }
 
+.word-display-hint {
+  font-size: 1.05rem;
+  color: #72767d;
+  text-align: center;
+  margin: 1rem 0;
+}
+
 .controls { display: flex; gap: 10px; margin-top: .5rem; }
 
-.challenge-banner {
+.last-word-banner {
   text-align: center;
-  background: #ed4245;
-  color: #fff;
+  background: #4a3800;
+  border: 1px solid #f0b232;
+  color: #f0b232;
   border-radius: 7px;
   padding: 10px;
+  font-size: .9rem;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin: .75rem 0;
 }
+
+/* ══ СТАТИСТИКА РАУНДУ ══ */
+.round-bottom { margin-top: 1rem; }
 
 .round-stats {
   display: flex;
-  gap: 16px;
-  font-size: .9rem;
-  color: #72767d;
-  margin-top: .75rem;
+  gap: 10px;
+  margin-bottom: 8px;
 }
+.stat-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #202225;
+  border-radius: 7px;
+  padding: 8px 12px;
+}
+.stat-num {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.stat-lbl { font-size: .78rem; color: #72767d; }
+.stat-correct .stat-num { color: #3ba55c; }
+.stat-skip    .stat-num { color: #ed4245; }
 
-.round-log { margin-top: 6px; }
+.round-log { max-height: 100px; overflow-y: auto; }
 .log-item {
-  font-size: .85rem;
-  padding: 3px 0;
+  font-size: .82rem;
+  padding: 2px 4px;
   border-bottom: 1px solid #40444b;
 }
-.log-plus { color: #3ba55c; }
+.log-plus  { color: #3ba55c; }
 .log-minus { color: #ed4245; }
 
-/* ══ РАХУНОК ══ */
-.score-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 7px 0;
-  border-bottom: 1px solid #40444b;
-  font-size: .9rem;
-}
-.score-row:last-child { border-bottom: none; }
-.score-val { font-weight: 700; color: #fff; }
-
 /* ══ РЕЗУЛЬТАТ ══ */
-.result-detail { margin-bottom: 8px; }
+.result-detail {
+  background: #202225;
+  border-radius: 7px;
+  padding: 10px 14px;
+}
 .result-row {
   display: flex;
   justify-content: space-between;
-  padding: 6px 0;
+  padding: 5px 0;
   font-size: .9rem;
   border-bottom: 1px solid #40444b;
 }
+.result-row:last-child { border-bottom: none; }
+.result-stats { color: #b9bbbe; font-size: .85rem; }
 
 /* ══ ФІНАЛ ══ */
 .winner-card {
   background: #202225;
+  border: 1px solid #5a5200;
   border-radius: 10px;
   padding: 1.25rem;
   text-align: center;
   margin-bottom: 1rem;
 }
 .winner-name {
-  font-size: 1.8rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #f0b232;
-  margin: 6px 0;
+  margin: 6px 0 4px;
+}
+.winner-score {
+  font-size: 1rem;
+  color: #b9bbbe;
 }
 
 .muted { color: #72767d; font-size: .88rem; }
