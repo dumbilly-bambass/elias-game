@@ -2,100 +2,147 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Еліас Онлайн</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="container">
 
-  <!-- ══ ЕКРАН 1: ВХІД ══ -->
-  <div id="screen-login" class="screen active">
+  <!-- ══ S0: ГОЛОВНА ══ -->
+  <div id="screen-home" class="screen active">
     <h1>ЕЛІАС</h1>
-    <input type="text" id="username" placeholder="Твій нік" maxlength="20" autocomplete="off">
-    <div class="room-list-wrap">
-      <div class="section-label">Активні кімнати</div>
+    <p class="subtitle">Онлайн гра для компанії</p>
+    <div class="home-actions">
+      <button id="btn-create" class="btn-primary btn-big">➕ Створити кімнату</button>
+      <button id="btn-join-go" class="btn-secondary btn-big">🔑 Приєднатись</button>
+    </div>
+    <div class="active-rooms-wrap">
+      <div class="section-label">Відкриті кімнати</div>
       <div id="rooms-list"><span class="muted">Завантаження...</span></div>
     </div>
-    <div class="divider">або створи нову</div>
-    <input type="text" id="room-id" placeholder="Назва кімнати" maxlength="20" autocomplete="off">
-    <button id="join-btn" class="btn-primary">Увійти / Створити</button>
   </div>
 
-  <!-- ══ ЕКРАН 2: ЛОБІ ══ -->
+  <!-- ══ S1: СТВОРИТИ КІМНАТУ (хост налаштовує до входу) ══ -->
+  <div id="screen-create" class="screen">
+    <div class="screen-header">
+      <button id="back-create" class="btn-back">← Назад</button>
+      <div class="screen-title">Нова кімната</div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Назва кімнати</label>
+      <input type="text" id="create-room-id" placeholder="наприклад: вечірка" maxlength="20" autocomplete="off">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Твій нік</label>
+      <input type="text" id="create-nick" placeholder="Твоє ім'я" maxlength="20" autocomplete="off">
+    </div>
+
+    <div class="section-label" style="margin-top:1rem">Налаштування гри</div>
+
+    <div class="settings-row">
+      <label>Режим гри</label>
+      <select id="game-mode">
+        <option value="solo">Особистий (3+ гравці)</option>
+        <option value="team">Командний (4+ гравці)</option>
+      </select>
+    </div>
+    <div class="settings-row">
+      <label>Час раунду (сек)</label>
+      <input type="number" id="round-time" value="60" min="15" max="180">
+    </div>
+    <div class="settings-row">
+      <label>Ціль балів</label>
+      <input type="number" id="score-limit" value="30" min="5" max="300">
+    </div>
+    <div id="team-round-row" class="settings-row" style="display:none">
+      <label>Макс. раундів</label>
+      <input type="number" id="round-count" value="10" min="2" max="60">
+    </div>
+    <div class="hint" id="end-hint"></div>
+
+    <!-- Словник -->
+    <div class="section-label" style="margin-top:1rem">Словник</div>
+    <div class="dict-tabs">
+      <button class="dict-tab active" data-tab="categories">Категорії</button>
+      <button class="dict-tab" data-tab="custom">Свої слова</button>
+      <button class="dict-tab" data-tab="json">JSON файл</button>
+    </div>
+    <div id="dict-categories" class="dict-panel active">
+      <div id="categories-grid" class="categories-grid"></div>
+    </div>
+    <div id="dict-custom" class="dict-panel">
+      <textarea id="custom-words" rows="5"
+        placeholder="Слова через кому або кожне з нового рядка"></textarea>
+      <div class="hint">Рекомендовано мінімум 20 слів</div>
+    </div>
+    <div id="dict-json" class="dict-panel">
+      <label class="file-label" id="json-file-label">
+        Обрати JSON файл
+        <input type="file" id="json-file" accept=".json" style="display:none">
+      </label>
+      <div class="hint">Формат: <code>["Слово1","Слово2",...]</code></div>
+      <div id="json-preview" class="muted" style="margin-top:6px;font-size:.82rem"></div>
+    </div>
+
+    <button id="btn-create-room" class="btn-primary" style="margin-top:1.25rem">
+      Створити та увійти
+    </button>
+  </div>
+
+  <!-- ══ S2: ПРИЄДНАТИСЬ ══ -->
+  <div id="screen-join" class="screen">
+    <div class="screen-header">
+      <button id="back-join" class="btn-back">← Назад</button>
+      <div class="screen-title">Приєднатись</div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Твій нік</label>
+      <input type="text" id="join-nick" placeholder="Твоє ім'я" maxlength="20" autocomplete="off">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Код кімнати</label>
+      <input type="text" id="join-room-id" placeholder="Введи код або обери знизу" maxlength="20" autocomplete="off">
+    </div>
+    <button id="btn-join" class="btn-primary">Приєднатись</button>
+    <div class="section-label" style="margin-top:1rem">Або обери відкриту кімнату</div>
+    <div id="join-rooms-list"><span class="muted">Завантаження...</span></div>
+  </div>
+
+  <!-- ══ S3: ЛОБІ ══ -->
   <div id="screen-lobby" class="screen">
     <div class="screen-header">
-      <div class="screen-title" id="lobby-room-name">Лобі</div>
+      <div>
+        <div class="screen-title" id="lobby-title">Лобі</div>
+        <div class="room-code-badge" id="lobby-code"></div>
+      </div>
       <button id="leave-lobby-btn" class="btn-leave">Вийти</button>
     </div>
 
-    <div class="section-label">Гравці</div>
+    <!-- Конфіг (тільки для перегляду гостями) -->
+    <div id="lobby-config-preview" class="config-preview"></div>
+
+    <div class="section-label" style="margin-top:.75rem">Гравці</div>
     <div id="lobby-players"></div>
 
-    <div id="host-settings" style="display:none">
-      <div class="section-label" style="margin-top:1.25rem">Налаштування</div>
-
-      <div class="settings-row">
-        <label>Режим гри</label>
-        <select id="game-mode">
-          <option value="solo">Особистий (3+ гравці)</option>
-          <option value="team">Командний (4+ гравці)</option>
-        </select>
-      </div>
-
-      <div id="team-settings" style="display:none">
-        <div class="section-label" style="margin-top:.75rem">Розподіл по командах</div>
-        <div id="team-assignment"></div>
-      </div>
-
-      <div class="settings-row">
-        <label>Час раунду (сек)</label>
-        <input type="number" id="round-time" value="60" min="15" max="180">
-      </div>
-      <div class="settings-row">
-        <label>Ліміт балів</label>
-        <input type="number" id="score-limit" value="30" min="5" max="200">
-      </div>
-      <div id="team-round-row" class="settings-row" style="display:none">
-        <label>Макс. раундів</label>
-        <input type="number" id="round-count" value="10" min="2" max="60">
-      </div>
-      <div class="hint" id="end-hint"></div>
-
-      <!-- Словник -->
-      <div class="section-label" style="margin-top:1rem">Словник</div>
-      <div class="dict-tabs">
-        <button class="dict-tab active" data-tab="categories">Категорії</button>
-        <button class="dict-tab" data-tab="custom">Свої слова</button>
-        <button class="dict-tab" data-tab="json">JSON файл</button>
-      </div>
-      <div id="dict-categories" class="dict-panel active">
-        <div id="categories-grid" class="categories-grid"></div>
-      </div>
-      <div id="dict-custom" class="dict-panel">
-        <textarea id="custom-words" rows="5"
-          placeholder="Слова через кому або кожне з нового рядка"></textarea>
-        <div class="hint">Рекомендовано мінімум 20 слів</div>
-      </div>
-      <div id="dict-json" class="dict-panel">
-        <label class="file-label" id="json-file-label">
-          Обрати JSON файл
-          <input type="file" id="json-file" accept=".json" style="display:none">
-        </label>
-        <div class="hint">Формат: <code>["Слово1","Слово2",...]</code></div>
-        <div id="json-preview" class="muted" style="margin-top:6px;font-size:.82rem"></div>
-      </div>
-
-      <button id="start-btn" class="btn-primary" style="margin-top:1.25rem">Розпочати гру</button>
+    <!-- Командний: розподіл по командах (тільки хост) -->
+    <div id="team-assignment-wrap" style="display:none">
+      <div class="section-label" style="margin-top:.75rem">Розподіл по командах</div>
+      <div id="team-assignment"></div>
     </div>
 
-    <div id="guest-waiting" style="display:none;margin-top:1rem">
-      <div class="muted">Чекаємо поки хост розпочне гру...</div>
-      <div id="guest-config-preview" style="margin-top:.75rem;font-size:.88rem;color:#b9bbbe"></div>
+    <!-- Хост -->
+    <div id="host-zone" style="display:none;margin-top:1.25rem">
+      <button id="start-btn" class="btn-primary btn-start">▶ Розпочати гру</button>
+    </div>
+    <!-- Гість -->
+    <div id="guest-zone" style="display:none;margin-top:1rem">
+      <div class="waiting-banner">Чекаємо поки хост розпочне...</div>
     </div>
   </div>
 
-  <!-- ══ ЕКРАН 3: БРИФІНГ ══ -->
+  <!-- ══ S4: БРИФІНГ ══ -->
   <div id="screen-briefing" class="screen">
     <div class="screen-header">
       <div class="screen-title" id="brief-round-label">Раунд</div>
@@ -120,14 +167,14 @@
     <div id="brief-scores" class="scores-list"></div>
 
     <div id="brief-host-btn-wrap" style="display:none;margin-top:1.25rem">
-      <button id="brief-start-btn" class="btn-primary">Розпочати раунд</button>
+      <button id="brief-start-btn" class="btn-primary">▶ Розпочати раунд</button>
     </div>
-    <div id="brief-guest-wait" class="muted" style="display:none;margin-top:1rem">
+    <div id="brief-guest-wait" class="muted" style="display:none;margin-top:1rem;text-align:center">
       Чекаємо хоста...
     </div>
   </div>
 
-  <!-- ══ ЕКРАН 4: РАУНД ══ -->
+  <!-- ══ S5: РАУНД ══ -->
   <div id="screen-round" class="screen">
     <div class="round-header">
       <div id="round-label" class="round-label-small"></div>
@@ -145,7 +192,7 @@
       </div>
       <div id="last-word-zone" style="display:none">
         <div class="last-word-banner">Час вийшов — встигли вгадати?</div>
-        <div class="controls">
+        <div class="controls" style="margin-top:.5rem">
           <button id="last-correct-btn" class="btn-green">Так +1</button>
           <button id="last-no-btn" class="btn-red">Ні</button>
         </div>
@@ -161,13 +208,12 @@
       </div>
     </div>
 
-    <!-- Спостерігач -->
+    <!-- Суддя / спостерігач -->
     <div id="view-observer" style="display:none">
-      <div class="role-chip chip-watch" style="margin:.25rem 0 .5rem">Ти відпочиваєш</div>
+      <div class="role-chip chip-watch" style="margin:.25rem 0 .5rem" id="observer-chip">Ти суддя</div>
       <div class="word-display-hint" id="observer-msg"></div>
     </div>
 
-    <!-- Рахунок та лог -->
     <div class="round-bottom">
       <div class="round-stats">
         <div class="stat-item stat-correct">
@@ -186,23 +232,44 @@
     <div id="round-scores" class="scores-list scores-compact"></div>
   </div>
 
-  <!-- ══ ЕКРАН 5: РЕЗУЛЬТАТ ══ -->
+  <!-- ══ S6: ОСТАННЄ СЛОВО ══ -->
+  <div id="screen-lastword" class="screen">
+    <div class="screen-title" style="margin-bottom:.75rem">Час вийшов!</div>
+    <div id="lw-view-explainer" style="display:none">
+      <div class="role-chip chip-explain" style="margin-bottom:.75rem">Ти пояснюєш</div>
+      <div id="lw-word" class="word-display">—</div>
+      <div class="last-word-banner">Встигли вгадати це слово?</div>
+      <div class="controls" style="margin-top:.75rem">
+        <button id="lw-yes-btn" class="btn-green">Так +1</button>
+        <button id="lw-no-btn"  class="btn-red">Ні</button>
+      </div>
+    </div>
+    <div id="lw-view-other" style="display:none">
+      <div class="last-word-banner" style="margin-bottom:1rem">
+        Ведучий підтверджує останнє слово...
+      </div>
+      <div class="section-label">Рахунок</div>
+      <div id="lw-scores" class="scores-list"></div>
+    </div>
+  </div>
+
+  <!-- ══ S7: РЕЗУЛЬТАТ ══ -->
   <div id="screen-result" class="screen">
     <div class="screen-title">Раунд завершено</div>
     <div id="result-detail" class="result-detail"></div>
     <div class="section-label" style="margin-top:1rem">Рахунок</div>
     <div id="result-scores" class="scores-list"></div>
     <div id="result-host-btn" style="display:none;margin-top:1.25rem">
-      <button id="next-round-btn" class="btn-primary">Наступний раунд</button>
+      <button id="next-round-btn" class="btn-primary">Наступний раунд →</button>
     </div>
-    <div id="result-guest-wait" class="muted" style="display:none;margin-top:1rem">
+    <div id="result-guest-wait" class="muted" style="display:none;margin-top:1rem;text-align:center">
       Чекаємо хоста...
     </div>
   </div>
 
-  <!-- ══ ЕКРАН 6: ФІНАЛ ══ -->
+  <!-- ══ S8: ФІНАЛ ══ -->
   <div id="screen-final" class="screen">
-    <div class="screen-title">Гра завершена!</div>
+    <div class="screen-title">Гра завершена! 🎉</div>
     <div class="winner-card">
       <div class="muted" style="font-size:.82rem;margin-bottom:4px">Переможець</div>
       <div class="winner-name" id="final-winner"></div>
