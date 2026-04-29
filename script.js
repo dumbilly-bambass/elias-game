@@ -60,10 +60,17 @@ const showScreen = id => {
 // ══════════════════════════════════════════════════════════════════════════════
 // ГОЛОВНА — список кімнат
 // ══════════════════════════════════════════════════════════════════════════════
-function renderRoomList(targetId) {
-  onValue(ref(db, "lobby"), snap => {
+function modeLabel(mode) {
+  return mode === "team" ? "Командний" : "Особистий";
+}
+
+// Одноразове завантаження списку кімнат (get, не onValue — щоб не перетирати DOM)
+async function loadRoomList(targetId) {
+  const el = $(targetId);
+  el.innerHTML = `<span class="muted">Завантаження...</span>`;
+  try {
+    const snap  = await get(ref(db, "lobby"));
     const rooms = snap.val();
-    const el = $(targetId);
     if (!rooms) {
       el.innerHTML = `<span class="muted">Немає відкритих кімнат</span>`;
       return;
@@ -77,30 +84,47 @@ function renderRoomList(targetId) {
         <span class="room-time">${info.roundTime || 60}с</span>
       </div>`
     ).join("");
-    el.querySelectorAll(".room-item").forEach(item => {
-      item.onclick = () => {
-        const rid = item.dataset.room;
-        if (targetId === "rooms-list") {
-          $("join-room-id").value = rid;
-          showScreen("screen-join");
-        } else {
-          $("join-room-id").value = rid;
-        }
-      };
-    });
+  } catch {
+    el.innerHTML = `<span class="muted">Помилка завантаження</span>`;
+  }
+}
+
+// Делегування кліків на room-item через батьківський контейнер
+function bindRoomListClicks(containerId, onPick) {
+  $(containerId).addEventListener("click", e => {
+    const item = e.target.closest(".room-item");
+    if (item) onPick(item.dataset.room);
   });
 }
 
-function modeLabel(mode) {
-  return mode === "team" ? "Командний" : "Особистий";
-}
+// Ініціалізація кнопок головного екрану — один раз при завантаженні
+$("btn-create").onclick = () => {
+  initCreateUI();
+  showScreen("screen-create");
+};
 
-renderRoomList("rooms-list");
+$("btn-join-go").onclick = () => {
+  loadRoomList("join-rooms-list");
+  showScreen("screen-join");
+};
 
-$("btn-create").onclick  = () => { initCreateUI(); showScreen("screen-create"); };
-$("btn-join-go").onclick = () => { renderRoomList("join-rooms-list"); showScreen("screen-join"); };
 $("back-create").onclick = () => showScreen("screen-home");
 $("back-join").onclick   = () => showScreen("screen-home");
+
+// Клік по кімнаті на головній → переходимо до join з заповненим кодом
+bindRoomListClicks("rooms-list", rid => {
+  $("join-room-id").value = rid;
+  loadRoomList("join-rooms-list");
+  showScreen("screen-join");
+});
+
+// Клік по кімнаті на екрані join → заповнюємо поле
+bindRoomListClicks("join-rooms-list", rid => {
+  $("join-room-id").value = rid;
+});
+
+// Завантажуємо список при старті
+loadRoomList("rooms-list");
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ЕКРАН СТВОРЕННЯ
@@ -232,7 +256,6 @@ $("btn-create-room").onclick = async () => {
 // ══════════════════════════════════════════════════════════════════════════════
 // ЕКРАН ПРИЄДНАННЯ
 // ══════════════════════════════════════════════════════════════════════════════
-renderRoomList("join-rooms-list");
 
 $("btn-join").onclick = async () => {
   const nick = $("join-nick").value.trim();
