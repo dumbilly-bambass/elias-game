@@ -13,33 +13,37 @@
   <div id="screen-home" class="screen active">
     <h1>ЕЛІАС</h1>
     <p class="subtitle">Онлайн гра для компанії</p>
-    <div class="home-actions">
-      <button id="btn-create" class="btn-primary btn-big">➕ Створити кімнату</button>
-      <button id="btn-join-go" class="btn-secondary btn-big">🔑 Приєднатись</button>
+
+    <div class="field-group">
+      <label class="field-label">Твій нік</label>
+      <input type="text" id="home-nick" placeholder="Введи своє ім'я" maxlength="20" autocomplete="off">
     </div>
-    <div class="active-rooms-wrap">
-      <div class="section-label">Відкриті кімнати</div>
-      <div id="rooms-list"><span class="muted">Завантаження...</span></div>
+
+    <div class="home-divider">
+      <span>Створи нову кімнату</span>
     </div>
+
+    <div class="field-group">
+      <input type="text" id="home-room" placeholder="Назва кімнати" maxlength="20" autocomplete="off">
+    </div>
+    <button id="btn-create" class="btn-primary btn-big">➕ Створити кімнату</button>
+
+    <div class="home-divider">
+      <span>або приєднайся до існуючої</span>
+    </div>
+
+    <div class="section-label">Відкриті кімнати <button id="btn-refresh" class="btn-refresh">↻</button></div>
+    <div id="rooms-list" class="rooms-list-wrap"><span class="muted">Завантаження...</span></div>
   </div>
 
-  <!-- ══ S1: СТВОРИТИ КІМНАТУ (хост налаштовує до входу) ══ -->
+  <!-- ══ S1: СТВОРИТИ — НАЛАШТУВАННЯ ══ -->
   <div id="screen-create" class="screen">
     <div class="screen-header">
       <button id="back-create" class="btn-back">← Назад</button>
-      <div class="screen-title">Нова кімната</div>
+      <div class="screen-title" id="create-title">Нова кімната</div>
     </div>
 
-    <div class="field-group">
-      <label class="field-label">Назва кімнати</label>
-      <input type="text" id="create-room-id" placeholder="наприклад: вечірка" maxlength="20" autocomplete="off">
-    </div>
-    <div class="field-group">
-      <label class="field-label">Твій нік</label>
-      <input type="text" id="create-nick" placeholder="Твоє ім'я" maxlength="20" autocomplete="off">
-    </div>
-
-    <div class="section-label" style="margin-top:1rem">Налаштування гри</div>
+    <div class="section-label" style="margin-top:.25rem">Налаштування гри</div>
 
     <div class="settings-row">
       <label>Режим гри</label>
@@ -62,7 +66,6 @@
     </div>
     <div class="hint" id="end-hint"></div>
 
-    <!-- Словник -->
     <div class="section-label" style="margin-top:1rem">Словник</div>
     <div class="dict-tabs">
       <button class="dict-tab active" data-tab="categories">Категорії</button>
@@ -73,8 +76,7 @@
       <div id="categories-grid" class="categories-grid"></div>
     </div>
     <div id="dict-custom" class="dict-panel">
-      <textarea id="custom-words" rows="5"
-        placeholder="Слова через кому або кожне з нового рядка"></textarea>
+      <textarea id="custom-words" rows="5" placeholder="Слова через кому або кожне з нового рядка"></textarea>
       <div class="hint">Рекомендовано мінімум 20 слів</div>
     </div>
     <div id="dict-json" class="dict-panel">
@@ -86,31 +88,10 @@
       <div id="json-preview" class="muted" style="margin-top:6px;font-size:.82rem"></div>
     </div>
 
-    <button id="btn-create-room" class="btn-primary" style="margin-top:1.25rem">
-      Створити та увійти
-    </button>
+    <button id="btn-create-confirm" class="btn-primary" style="margin-top:1.25rem">Створити та увійти</button>
   </div>
 
-  <!-- ══ S2: ПРИЄДНАТИСЬ ══ -->
-  <div id="screen-join" class="screen">
-    <div class="screen-header">
-      <button id="back-join" class="btn-back">← Назад</button>
-      <div class="screen-title">Приєднатись</div>
-    </div>
-    <div class="field-group">
-      <label class="field-label">Твій нік</label>
-      <input type="text" id="join-nick" placeholder="Твоє ім'я" maxlength="20" autocomplete="off">
-    </div>
-    <div class="field-group">
-      <label class="field-label">Код кімнати</label>
-      <input type="text" id="join-room-id" placeholder="Введи код або обери знизу" maxlength="20" autocomplete="off">
-    </div>
-    <button id="btn-join" class="btn-primary">Приєднатись</button>
-    <div class="section-label" style="margin-top:1rem">Або обери відкриту кімнату</div>
-    <div id="join-rooms-list"><span class="muted">Завантаження...</span></div>
-  </div>
-
-  <!-- ══ S3: ЛОБІ ══ -->
+  <!-- ══ S2: ЛОБІ ══ -->
   <div id="screen-lobby" class="screen">
     <div class="screen-header">
       <div>
@@ -120,35 +101,30 @@
       <button id="leave-lobby-btn" class="btn-leave">Вийти</button>
     </div>
 
-    <!-- Конфіг (тільки для перегляду гостями) -->
     <div id="lobby-config-preview" class="config-preview"></div>
 
     <div class="section-label" style="margin-top:.75rem">Гравці</div>
     <div id="lobby-players"></div>
 
-    <!-- Командний: розподіл по командах (тільки хост) -->
     <div id="team-assignment-wrap" style="display:none">
       <div class="section-label" style="margin-top:.75rem">Розподіл по командах</div>
       <div id="team-assignment"></div>
     </div>
 
-    <!-- Хост -->
     <div id="host-zone" style="display:none;margin-top:1.25rem">
       <button id="start-btn" class="btn-primary btn-start">▶ Розпочати гру</button>
     </div>
-    <!-- Гість -->
     <div id="guest-zone" style="display:none;margin-top:1rem">
       <div class="waiting-banner">Чекаємо поки хост розпочне...</div>
     </div>
   </div>
 
-  <!-- ══ S4: БРИФІНГ ══ -->
+  <!-- ══ S3: БРИФІНГ ══ -->
   <div id="screen-briefing" class="screen">
     <div class="screen-header">
       <div class="screen-title" id="brief-round-label">Раунд</div>
       <button id="leave-game-btn" class="btn-leave">Вийти</button>
     </div>
-
     <div class="brief-pair">
       <div class="brief-role">
         <div class="role-chip chip-explain">Пояснює</div>
@@ -160,12 +136,9 @@
         <div class="big-name" id="brief-guesser"></div>
       </div>
     </div>
-
     <div id="brief-my-role" class="my-role-banner"></div>
-
     <div class="section-label" style="margin-top:1rem">Рахунок</div>
     <div id="brief-scores" class="scores-list"></div>
-
     <div id="brief-host-btn-wrap" style="display:none;margin-top:1.25rem">
       <button id="brief-start-btn" class="btn-primary">▶ Розпочати раунд</button>
     </div>
@@ -174,7 +147,7 @@
     </div>
   </div>
 
-  <!-- ══ S5: РАУНД ══ -->
+  <!-- ══ S4: РАУНД ══ -->
   <div id="screen-round" class="screen">
     <div class="round-header">
       <div id="round-label" class="round-label-small"></div>
@@ -182,7 +155,6 @@
     </div>
     <div class="timer-bar-bg"><div id="timer-bar" class="timer-bar"></div></div>
 
-    <!-- Ведучий -->
     <div id="view-explainer" style="display:none">
       <div class="role-chip chip-explain" style="margin:.25rem 0 .5rem">Ти пояснюєш</div>
       <div id="word-display" class="word-display">—</div>
@@ -190,25 +162,13 @@
         <button id="correct-btn" class="btn-green">✅ Вгадали</button>
         <button id="skip-btn" class="btn-red">❌ Пропустити</button>
       </div>
-      <div id="last-word-zone" style="display:none">
-        <div class="last-word-banner">Час вийшов — встигли вгадати?</div>
-        <div class="controls" style="margin-top:.5rem">
-          <button id="last-correct-btn" class="btn-green">Так +1</button>
-          <button id="last-no-btn" class="btn-red">Ні</button>
-        </div>
-      </div>
     </div>
 
-    <!-- Відгадувач -->
     <div id="view-guesser" style="display:none">
       <div class="role-chip chip-guess" style="margin:.25rem 0 .5rem">Ти відгадуєш</div>
       <div class="word-display-hint">Слухай і вгадуй!</div>
-      <div id="guesser-last-zone" class="last-word-banner" style="display:none">
-        Час вийшов — чи встигли вгадати?
-      </div>
     </div>
 
-    <!-- Суддя / спостерігач -->
     <div id="view-observer" style="display:none">
       <div class="role-chip chip-watch" style="margin:.25rem 0 .5rem" id="observer-chip">Ти суддя</div>
       <div class="word-display-hint" id="observer-msg"></div>
@@ -227,12 +187,11 @@
       </div>
       <div id="round-log" class="round-log"></div>
     </div>
-
     <div class="section-label" style="margin-top:.75rem">Рахунок</div>
     <div id="round-scores" class="scores-list scores-compact"></div>
   </div>
 
-  <!-- ══ S6: ОСТАННЄ СЛОВО ══ -->
+  <!-- ══ S5: ОСТАННЄ СЛОВО ══ -->
   <div id="screen-lastword" class="screen">
     <div class="screen-title" style="margin-bottom:.75rem">Час вийшов!</div>
     <div id="lw-view-explainer" style="display:none">
@@ -241,19 +200,17 @@
       <div class="last-word-banner">Встигли вгадати це слово?</div>
       <div class="controls" style="margin-top:.75rem">
         <button id="lw-yes-btn" class="btn-green">Так +1</button>
-        <button id="lw-no-btn"  class="btn-red">Ні</button>
+        <button id="lw-no-btn" class="btn-red">Ні</button>
       </div>
     </div>
     <div id="lw-view-other" style="display:none">
-      <div class="last-word-banner" style="margin-bottom:1rem">
-        Ведучий підтверджує останнє слово...
-      </div>
+      <div class="last-word-banner" style="margin-bottom:1rem">Ведучий підтверджує останнє слово...</div>
       <div class="section-label">Рахунок</div>
       <div id="lw-scores" class="scores-list"></div>
     </div>
   </div>
 
-  <!-- ══ S7: РЕЗУЛЬТАТ ══ -->
+  <!-- ══ S6: РЕЗУЛЬТАТ ══ -->
   <div id="screen-result" class="screen">
     <div class="screen-title">Раунд завершено</div>
     <div id="result-detail" class="result-detail"></div>
@@ -267,7 +224,7 @@
     </div>
   </div>
 
-  <!-- ══ S8: ФІНАЛ ══ -->
+  <!-- ══ S7: ФІНАЛ ══ -->
   <div id="screen-final" class="screen">
     <div class="screen-title">Гра завершена! 🎉</div>
     <div class="winner-card">
@@ -284,6 +241,10 @@
   </div>
 
 </div>
-<script type="module" src="script.js"></script>
+
+<!-- Firebase compat (не ES modules — надійніший спосіб) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="script.js"></script>
 </body>
 </html>

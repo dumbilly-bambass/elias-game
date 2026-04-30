@@ -1,8 +1,3 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getDatabase, ref, set, get, update, onValue, remove
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
 // ─── Firebase ─────────────────────────────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyBJxZvcpgKbPGbEtT4c181n2pMGIIZTS-c",
@@ -13,8 +8,8 @@ const firebaseConfig = {
   messagingSenderId: "321422256553",
   appId: "1:321422256553:web:791ceb19b423e5584dbcb8"
 };
-const app = initializeApp(firebaseConfig);
-const db  = getDatabase(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
 // ─── Словники ─────────────────────────────────────────────────────────────────
 const BUILTIN = {
@@ -44,93 +39,80 @@ const BUILTIN = {
   ]
 };
 
-// ─── Стан клієнта ─────────────────────────────────────────────────────────────
+// ─── Стан ─────────────────────────────────────────────────────────────────────
 let myName      = "";
 let currentRoom = "";
 let roomUnsub   = null;
 let timerHandle = null;
-let jsonWords   = [];   // слова завантажені з JSON
+let jsonWords   = [];
 
-const $ = id => document.getElementById(id);
-const showScreen = id => {
+// ─── Утиліти ──────────────────────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+
+function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   $(id).classList.add("active");
-};
+}
 
-// ══════════════════════════════════════════════════════════════════════════════
-// ГОЛОВНА — список кімнат
-// ══════════════════════════════════════════════════════════════════════════════
 function modeLabel(mode) {
   return mode === "team" ? "Командний" : "Особистий";
 }
 
-// Одноразове завантаження списку кімнат (get, не onValue — щоб не перетирати DOM)
-async function loadRoomList(targetId) {
-  const el = $(targetId);
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ГОЛОВНА
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadRoomList() {
+  const el = $("rooms-list");
   el.innerHTML = `<span class="muted">Завантаження...</span>`;
-  try {
-    const snap  = await get(ref(db, "lobby"));
-    const rooms = snap.val();
-    if (!rooms) {
-      el.innerHTML = `<span class="muted">Немає відкритих кімнат</span>`;
-      return;
-    }
-    el.innerHTML = Object.entries(rooms).map(([id, info]) => `
-      <div class="room-item" data-room="${id}">
-        <div>
-          <span class="room-name">${id}</span>
-          <span class="room-meta">${modeLabel(info.mode)} · ${info.players || 0} гравців</span>
-        </div>
-        <span class="room-time">${info.roundTime || 60}с</span>
-      </div>`
-    ).join("");
-  } catch {
-    el.innerHTML = `<span class="muted">Помилка завантаження</span>`;
+  const snap = await db.ref("lobby").get();
+  const rooms = snap.val();
+  if (!rooms) {
+    el.innerHTML = `<span class="muted">Немає відкритих кімнат</span>`;
+    return;
   }
+  el.innerHTML = Object.entries(rooms).map(([id, info]) => `
+    <div class="room-item" data-room="${id}">
+      <div>
+        <span class="room-name">${id}</span>
+        <span class="room-meta">${modeLabel(info.mode)} · ${info.roundTime || 60}с · ціль ${info.scoreLimit || 30}</span>
+      </div>
+      <span class="room-players">${info.players || 0} 👤</span>
+    </div>`
+  ).join("");
 }
 
-// Делегування кліків на room-item через батьківський контейнер
-function bindRoomListClicks(containerId, onPick) {
-  $(containerId).addEventListener("click", e => {
-    const item = e.target.closest(".room-item");
-    if (item) onPick(item.dataset.room);
-  });
-}
+// Клік по кімнаті — одразу входимо
+$("rooms-list").addEventListener("click", e => {
+  const item = e.target.closest(".room-item");
+  if (!item) return;
+  const nick = $("home-nick").value.trim();
+  if (!nick) { alert("Спочатку введи свій нік"); $("home-nick").focus(); return; }
+  joinExistingRoom(item.dataset.room, nick);
+});
 
-// Ініціалізація кнопок головного екрану — один раз при завантаженні
+$("btn-refresh").onclick = loadRoomList;
+
 $("btn-create").onclick = () => {
+  const nick = $("home-nick").value.trim();
+  const room = $("home-room").value.trim();
+  if (!nick) { alert("Введи свій нік"); $("home-nick").focus(); return; }
+  if (!room) { alert("Введи назву кімнати"); $("home-room").focus(); return; }
+  myName      = nick;
+  currentRoom = room;
   initCreateUI();
+  $("create-title").textContent = `Налаштування: ${room}`;
   showScreen("screen-create");
 };
-
-$("btn-join-go").onclick = () => {
-  loadRoomList("join-rooms-list");
-  showScreen("screen-join");
-};
-
-$("back-create").onclick = () => showScreen("screen-home");
-$("back-join").onclick   = () => showScreen("screen-home");
-
-// Клік по кімнаті на головній → переходимо до join з заповненим кодом
-bindRoomListClicks("rooms-list", rid => {
-  $("join-room-id").value = rid;
-  loadRoomList("join-rooms-list");
-  showScreen("screen-join");
-});
-
-// Клік по кімнаті на екрані join → заповнюємо поле
-bindRoomListClicks("join-rooms-list", rid => {
-  $("join-room-id").value = rid;
-});
-
-// Завантажуємо список при старті
-loadRoomList("rooms-list");
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ЕКРАН СТВОРЕННЯ
 // ══════════════════════════════════════════════════════════════════════════════
 function initCreateUI() {
-  // Таби словника
+  // Таби
   document.querySelectorAll(".dict-tab").forEach(btn => {
     btn.onclick = () => {
       document.querySelectorAll(".dict-tab").forEach(b => b.classList.remove("active"));
@@ -150,7 +132,7 @@ function initCreateUI() {
     grid.appendChild(lbl);
   });
 
-  // JSON файл
+  // JSON
   $("json-file").onchange = e => {
     const file = e.target.files[0];
     if (!file) return;
@@ -162,20 +144,13 @@ function initCreateUI() {
         jsonWords = Array.isArray(parsed)
           ? parsed.filter(w => typeof w === "string")
           : Object.values(parsed).flat().filter(w => typeof w === "string");
-        $("json-preview").textContent = `✅ Завантажено ${jsonWords.length} слів`;
-      } catch {
-        $("json-preview").textContent = "❌ Невірний формат JSON";
-      }
+        $("json-preview").textContent = `✅ ${jsonWords.length} слів`;
+      } catch { $("json-preview").textContent = "❌ Невірний JSON"; }
     };
     reader.readAsText(file);
   };
 
-  // Режим → показуємо/ховаємо командні налаштування
-  $("game-mode").onchange = () => {
-    const isTeam = $("game-mode").value === "team";
-    $("team-round-row").style.display = isTeam ? "flex" : "none";
-    updateEndHint();
-  };
+  $("game-mode").onchange = updateEndHint;
   $("score-limit").oninput = updateEndHint;
   $("round-count").oninput = updateEndHint;
   updateEndHint();
@@ -185,39 +160,32 @@ function updateEndHint() {
   const mode  = $("game-mode").value;
   const score = $("score-limit").value;
   const rnds  = $("round-count").value;
+  $("team-round-row").style.display = mode === "team" ? "flex" : "none";
   $("end-hint").textContent = mode === "solo"
-    ? `Гра до ${score} балів (пари зациклюються нескінченно)`
-    : `Гра до ${score} балів або ${rnds} раундів — що швидше`;
+    ? `Гра до ${score} балів (пари зациклюються)`
+    : `До ${score} балів або ${rnds} раундів — що швидше`;
 }
 
 function buildWordPool() {
-  const activeTab = document.querySelector(".dict-tab.active")?.dataset.tab || "categories";
+  const tab = document.querySelector(".dict-tab.active")?.dataset.tab || "categories";
   let pool = [];
-  if (activeTab === "categories") {
+  if (tab === "categories") {
     document.querySelectorAll("#categories-grid input:checked")
       .forEach(cb => { pool = pool.concat(BUILTIN[cb.value] || []); });
-  } else if (activeTab === "custom") {
-    pool = $("custom-words").value
-      .split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+  } else if (tab === "custom") {
+    pool = $("custom-words").value.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
   } else {
     pool = jsonWords;
   }
-  if (pool.length < 5) {
-    alert("Замало слів у словнику! Оберіть категорії або додайте слова.");
-    return null;
-  }
-  return pool.sort(() => Math.random() - 0.5);
+  if (pool.length < 5) { alert("Замало слів! Оберіть категорії або додайте слова."); return null; }
+  return shuffle(pool);
 }
 
-$("btn-create-room").onclick = async () => {
-  const nick = $("create-nick").value.trim();
-  const room = $("create-room-id").value.trim();
-  if (!nick) { alert("Введи свій нік"); return; }
-  if (!room) { alert("Введи назву кімнати"); return; }
+$("back-create").onclick = () => showScreen("screen-home");
 
-  // Перевірка чи кімната вже існує
-  const existing = await get(ref(db, `rooms/${room}/config`));
-  if (existing.exists()) { alert("Кімната з такою назвою вже існує!"); return; }
+$("btn-create-confirm").onclick = async () => {
+  const snap = await db.ref(`rooms/${currentRoom}/config`).get();
+  if (snap.exists()) { alert("Кімната вже існує!"); return; }
 
   const wordPool = buildWordPool();
   if (!wordPool) return;
@@ -227,78 +195,37 @@ $("btn-create-room").onclick = async () => {
   const scoreLimit  = parseInt($("score-limit").value) || 30;
   const totalRounds = parseInt($("round-count").value) || 10;
 
-  // Створюємо кімнату — без гравців поки
-  await set(ref(db, `rooms/${room}`), {
-    config: {
-      host:        "",          // хост — перший хто приєднається
-      status:      "lobby",
-      mode,
-      roundTime,
-      scoreLimit,
-      totalRounds,
-      teams:       {}
-    },
+  await db.ref(`rooms/${currentRoom}`).set({
+    config: { host: myName, status: "lobby", mode, roundTime, scoreLimit, totalRounds, teams: {} },
     wordPool,
-    players:     {}
+    players: { [myName]: true }
   });
+  await db.ref(`lobby/${currentRoom}`).set({ mode, roundTime, scoreLimit, players: 1 });
 
-  // Публікуємо в лобі
-  await set(ref(db, `lobby/${room}`), {
-    mode, roundTime, scoreLimit, players: 0
-  });
-
-  // Автоматично входимо як перший гравець (хост)
-  myName      = nick;
-  currentRoom = room;
-  await joinRoomAsPlayer(true);
+  showScreen("screen-lobby");
+  subscribeRoom();
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ЕКРАН ПРИЄДНАННЯ
+// ПРИЄДНАННЯ ДО ІСНУЮЧОЇ КІМНАТИ
 // ══════════════════════════════════════════════════════════════════════════════
-
-$("btn-join").onclick = async () => {
-  const nick = $("join-nick").value.trim();
-  const room = $("join-room-id").value.trim();
-  if (!nick) { alert("Введи свій нік"); return; }
-  if (!room) { alert("Введи назву кімнати"); return; }
-
-  const snap = await get(ref(db, `rooms/${room}/config`));
+async function joinExistingRoom(room, nick) {
+  const snap = await db.ref(`rooms/${room}/config`).get();
   if (!snap.exists()) { alert("Кімната не знайдена"); return; }
 
   const cfg = snap.val();
   if (cfg.status !== "lobby") { alert("Гра вже розпочата"); return; }
 
+  const pSnap = await db.ref(`rooms/${room}/players`).get();
+  const players = Object.keys(pSnap.val() || {});
+  if (players.includes(nick)) { alert("Цей нік вже зайнятий"); return; }
+
   myName      = nick;
   currentRoom = room;
 
-  // Перевіряємо чи нік вже зайнятий
-  const playersSnap = await get(ref(db, `rooms/${room}/players`));
-  const players = Object.keys(playersSnap.val() || {});
-  if (players.includes(myName)) {
-    alert("Цей нік вже зайнятий у цій кімнаті");
-    return;
-  }
-
-  await joinRoomAsPlayer(false);
-};
-
-// ─── Загальна логіка входу ────────────────────────────────────────────────────
-async function joinRoomAsPlayer(isCreator) {
-  // Додаємо гравця
-  await update(ref(db, `rooms/${currentRoom}/players`), { [myName]: true });
-
-  // Перший гравець стає хостом
-  const cfgSnap = await get(ref(db, `rooms/${currentRoom}/config`));
-  const cfg = cfgSnap.val();
-  if (!cfg.host) {
-    await update(ref(db, `rooms/${currentRoom}/config`), { host: myName });
-  }
-
-  // Оновлюємо лічильник
-  const pSnap = await get(ref(db, `rooms/${currentRoom}/players`));
-  const count = Object.keys(pSnap.val() || {}).length;
-  await update(ref(db, `lobby/${currentRoom}`), { players: count });
+  await db.ref(`rooms/${room}/players/${nick}`).set(true);
+  const newCount = players.length + 1;
+  await db.ref(`lobby/${room}/players`).set(newCount);
 
   showScreen("screen-lobby");
   subscribeRoom();
@@ -309,7 +236,7 @@ async function joinRoomAsPlayer(isCreator) {
 // ══════════════════════════════════════════════════════════════════════════════
 function subscribeRoom() {
   if (roomUnsub) roomUnsub();
-  roomUnsub = onValue(ref(db, `rooms/${currentRoom}`), snap => {
+  const unsub = db.ref(`rooms/${currentRoom}`).on("value", snap => {
     const data = snap.val();
     if (!data) { goHome(); return; }
     const status = data.config?.status;
@@ -320,6 +247,7 @@ function subscribeRoom() {
     else if (status === "result")   renderResult(data);
     else if (status === "final")    renderFinal(data);
   });
+  roomUnsub = () => db.ref(`rooms/${currentRoom}`).off("value", unsub);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -336,7 +264,6 @@ function renderLobby(data) {
   $("lobby-title").textContent = `Кімната: ${currentRoom}`;
   $("lobby-code").textContent  = `Код: ${currentRoom}`;
 
-  // Превью конфігу
   $("lobby-config-preview").innerHTML = `
     <div class="config-row"><span>Режим</span><span>${modeLabel(cfg.mode)}</span></div>
     <div class="config-row"><span>Час раунду</span><span>${cfg.roundTime}с</span></div>
@@ -344,18 +271,14 @@ function renderLobby(data) {
     ${cfg.mode === "team" ? `<div class="config-row"><span>Макс. раундів</span><span>${cfg.totalRounds}</span></div>` : ""}
   `;
 
-  // Список гравців
   $("lobby-players").innerHTML = players.map(p => `
     <div class="player-row">
-      ${p === cfg.host
-        ? `<span class="host-badge">👑</span>`
-        : `<span class="host-badge" style="opacity:0">👑</span>`}
-      <span class="player-name${p === myName ? " player-me" : ""}">${p}</span>
+      <span class="host-badge">${p === cfg.host ? "👑" : "&nbsp;&nbsp;&nbsp;"}</span>
+      <span class="player-name ${p === myName ? "player-me" : ""}">${p}</span>
       ${p === myName ? `<span class="you-tag">(ти)</span>` : ""}
     </div>`
   ).join("");
 
-  // Командний: розподіл
   if (cfg.mode === "team" && isHost) {
     $("team-assignment-wrap").style.display = "block";
     renderTeamAssignment(players, cfg.teams || {});
@@ -363,7 +286,6 @@ function renderLobby(data) {
     $("team-assignment-wrap").style.display = "none";
   }
 
-  // Кнопки
   $("host-zone").style.display  = isHost ? "block" : "none";
   $("guest-zone").style.display = isHost ? "none"  : "block";
 }
@@ -378,29 +300,25 @@ function renderTeamAssignment(players, currentTeams) {
   ).join("");
   $("team-assignment").querySelectorAll(".team-input").forEach(inp => {
     inp.onchange = () =>
-      update(ref(db, `rooms/${currentRoom}/config/teams`),
-             { [inp.dataset.player]: inp.value.trim() });
+      db.ref(`rooms/${currentRoom}/config/teams/${inp.dataset.player}`).set(inp.value.trim());
   });
 }
 
-// ─── Старт гри ───────────────────────────────────────────────────────────────
 $("start-btn").onclick = async () => {
-  const snap    = await get(ref(db, `rooms/${currentRoom}`));
+  const snap    = await db.ref(`rooms/${currentRoom}`).get();
   const data    = snap.val();
   const cfg     = data.config || {};
   const players = Object.keys(data.players || {});
-  const mode    = cfg.mode;
 
   if (players.length < 3) { alert("Потрібно мінімум 3 гравці"); return; }
 
   let schedule, scores;
 
-  if (mode === "solo") {
+  if (cfg.mode === "solo") {
     schedule = buildSoloSchedule(players);
     scores   = Object.fromEntries(players.map(p => [p, 0]));
   } else {
-    const teams = cfg.teams || {};
-    const grouped = groupByTeam(players, teams);
+    const grouped = groupByTeam(players, cfg.teams || {});
     if (Object.keys(grouped).length < 2) { alert("Потрібно мінімум 2 команди"); return; }
     for (const [t, members] of Object.entries(grouped)) {
       if (members.length < 2) { alert(`Команда "${t}" має менше 2 гравців`); return; }
@@ -409,106 +327,50 @@ $("start-btn").onclick = async () => {
     scores   = Object.fromEntries(Object.keys(grouped).map(t => [t, 0]));
   }
 
-  const wordPool = data.wordPool;
-  if (!wordPool || wordPool.length < 5) { alert("Немає слів у словнику!"); return; }
-
-  await update(ref(db, `rooms/${currentRoom}/config`), { status: "briefing" });
-  await set(ref(db, `rooms/${currentRoom}/game`), {
-    schedule,
-    cursor:       0,      // індекс поточного раунду (для обох режимів)
-    wordIdx:      0,
-    scores,
-    roundCorrect: 0,
-    roundSkip:    0,
-    roundLog:     [],
-    timer:        cfg.roundTime,
+  await db.ref(`rooms/${currentRoom}/config`).update({ status: "briefing" });
+  await db.ref(`rooms/${currentRoom}/game`).set({
+    schedule, cursor: 0, wordIdx: 0, scores,
+    roundCorrect: 0, roundSkip: 0, roundLog: [], timer: cfg.roundTime,
   });
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ГЕНЕРАТОРИ РОЗКЛАДУ
 // ══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Соло: рівномірне чергування ролей.
- * Для N гравців будуємо цикл де кожен гравець рівномірно чергує:
- * пояснює → відгадує → суддя → пояснює → ...
- *
- * Алгоритм: round-robin турнір.
- * Для N гравців (N непарне — фіксуємо "суддю" по черзі):
- *   Раунд r: explainer = r % N, guesser = (r+1) % N, решта — судді/спостерігачі
- *
- * Але нам треба щоб КОЖНА пара зустрілась і ніхто не повторював роль підряд.
- * Генеруємо один повний цикл де кожен по одному разу пояснює кожному іншому
- * в порядку що чергує ролі:
- *
- * Pattern for [A,B,C]:
- *   A→B, B→C, C→A, A→C, C→B, B→A  (кожен 2 рази пояснює, 2 рази відгадує, 2 рази суддя)
- */
 function buildSoloSchedule(players) {
   const n = players.length;
-  const schedule = [];
-
-  // Генеруємо так щоб жоден гравець не мав однакову роль 2 рази підряд.
-  // Підхід: для кожного раунду r обираємо пару (exp, gss) методом зсуву.
-  // Exp = players[r % n], Gss = players[(r + 1 + Math.floor(r/n)) % n] — але це складно.
-  //
-  // Простіший підхід що гарантує рівномірність:
-  // Один цикл = n*(n-1) пар. Упорядковуємо їх так:
-  // Беремо всі пари і сортуємо щоб exp[i] != exp[i-1] і exp[i] != gss[i-1]
-
-  // Спочатку генеруємо всі пари
   const allPairs = [];
   for (let i = 0; i < n; i++)
     for (let j = 0; j < n; j++)
       if (i !== j) allPairs.push({ explainer: players[i], guesser: players[j] });
 
-  // Перемішуємо з обмеженням: ніхто не може мати ту саму роль 2 рази підряд
+  // Впорядковуємо щоб ніхто не повторював роль підряд
   const ordered = [];
   const remaining = [...allPairs];
-  let lastExplainer = "";
-  let lastGuesser   = "";
+  let lastExp = "", lastGss = "";
 
   while (remaining.length > 0) {
-    // Шукаємо пару де explainer != lastExplainer і guesser != lastGuesser
-    const idx = remaining.findIndex(p =>
-      p.explainer !== lastExplainer && p.guesser !== lastGuesser
-    );
-    if (idx === -1) {
-      // Якщо не знайшли ідеальну — relaxed: просто не той самий explainer
-      const idx2 = remaining.findIndex(p => p.explainer !== lastExplainer);
-      const pick = idx2 === -1 ? 0 : idx2;
-      const [p] = remaining.splice(pick, 1);
-      ordered.push(p);
-      lastExplainer = p.explainer;
-      lastGuesser   = p.guesser;
-    } else {
-      const [p] = remaining.splice(idx, 1);
-      ordered.push(p);
-      lastExplainer = p.explainer;
-      lastGuesser   = p.guesser;
-    }
+    let idx = remaining.findIndex(p => p.explainer !== lastExp && p.guesser !== lastGss);
+    if (idx === -1) idx = remaining.findIndex(p => p.explainer !== lastExp);
+    if (idx === -1) idx = 0;
+    const [p] = remaining.splice(idx, 1);
+    ordered.push(p);
+    lastExp = p.explainer;
+    lastGss = p.guesser;
   }
-
-  return ordered; // зациклюємо через cursor % length
+  return ordered;
 }
 
-/**
- * Командний: ведучий всередині команди щораунду наступний.
- * Команди чергуються по колу.
- */
 function buildTeamSchedule(grouped, totalRounds) {
-  const teamNames  = Object.keys(grouped);
-  const expIdx     = Object.fromEntries(teamNames.map(t => [t, 0]));
-  const rounds     = [];
-
+  const teamNames = Object.keys(grouped);
+  const expIdx    = Object.fromEntries(teamNames.map(t => [t, 0]));
+  const rounds    = [];
   for (let r = 0; r < totalRounds; r++) {
-    const team     = teamNames[r % teamNames.length];
-    const members  = grouped[team];
+    const team      = teamNames[r % teamNames.length];
+    const members   = grouped[team];
     const explainer = members[expIdx[team] % members.length];
     expIdx[team]++;
-    const guessers  = members.filter(m => m !== explainer);
-    rounds.push({ team, explainer, guessers });
+    rounds.push({ team, explainer, guessers: members.filter(m => m !== explainer) });
   }
   return rounds;
 }
@@ -534,7 +396,6 @@ function renderBriefing(data) {
   const game   = data.game;
   const isHost = cfg.host === myName;
   const round  = getRound(game, cfg.mode);
-  const total  = game.schedule.length;
   const cursor = game.cursor || 0;
 
   if (cfg.mode === "solo") {
@@ -542,19 +403,19 @@ function renderBriefing(data) {
     const cycle    = Math.floor(cursor / cycleLen) + 1;
     const pos      = (cursor % cycleLen) + 1;
     $("brief-round-label").textContent = `Цикл ${cycle}, пара ${pos}/${cycleLen}`;
-    $("brief-explainer").textContent = round.explainer;
-    $("brief-guesser").textContent   = round.guesser;
+    $("brief-explainer").textContent   = round.explainer;
+    $("brief-guesser").textContent     = round.guesser;
   } else {
-    $("brief-round-label").textContent = `Раунд ${cursor + 1}/${total}`;
-    $("brief-explainer").textContent   = `${round.explainer}`;
-    $("brief-guesser").textContent     = round.guessers?.join(", ") || "—";
+    $("brief-round-label").textContent = `Раунд ${cursor + 1}/${game.schedule.length}`;
+    $("brief-explainer").textContent   = round.explainer;
+    $("brief-guesser").textContent     = (round.guessers || []).join(", ") || "—";
   }
 
   const role = getMyRole(round, cfg.mode);
-  const roleLabel = { explainer: "Ти пояснюєш", guesser: "Ти відгадуєш", observer: "Ти суддя / відпочиваєш" };
-  const roleChip  = { explainer: "chip-explain", guesser: "chip-guess",   observer: "chip-watch" };
+  const labels = { explainer: "Ти пояснюєш", guesser: "Ти відгадуєш", observer: "Ти суддя / відпочиваєш" };
+  const chips  = { explainer: "chip-explain", guesser: "chip-guess",   observer: "chip-watch" };
   $("brief-my-role").innerHTML =
-    `<span class="role-chip ${roleChip[role]}">${roleLabel[role]}</span>`;
+    `<span class="role-chip ${chips[role]}">${labels[role]}</span>`;
 
   renderScores(game.scores, "brief-scores", cfg.scoreLimit);
 
@@ -563,7 +424,7 @@ function renderBriefing(data) {
 }
 
 $("brief-start-btn").onclick = () =>
-  update(ref(db, `rooms/${currentRoom}/config`), { status: "playing" });
+  db.ref(`rooms/${currentRoom}/config`).update({ status: "playing" });
 
 // ══════════════════════════════════════════════════════════════════════════════
 // РАУНД
@@ -578,41 +439,28 @@ function renderRound(data) {
   const role   = getMyRole(round, cfg.mode);
   const cursor = game.cursor || 0;
 
-  // Заголовок
-  if (cfg.mode === "solo") {
-    $("round-label").textContent = `${round.explainer} → ${round.guesser}`;
-  } else {
-    $("round-label").textContent =
-      `Раунд ${cursor + 1}/${game.schedule.length} · ${round.team}`;
-  }
+  $("round-label").textContent = cfg.mode === "solo"
+    ? `${round.explainer} → ${round.guesser}`
+    : `Раунд ${cursor + 1}/${game.schedule.length} · ${round.team}`;
 
-  // Таймер
-  const timeLeft = game.timer ?? cfg.roundTime;
+  const timeLeft = (game.timer !== undefined) ? game.timer : cfg.roundTime;
   $("timer").textContent = timeLeft;
   const pct = timeLeft / cfg.roundTime * 100;
   $("timer-bar").style.width = pct + "%";
-  $("timer-bar").className = "timer-bar" +
-    (pct > 40 ? "" : pct > 20 ? " warn" : " danger");
+  $("timer-bar").className = "timer-bar" + (pct > 40 ? "" : pct > 20 ? " warn" : " danger");
 
-  // Ролі
   $("view-explainer").style.display = role === "explainer" ? "block" : "none";
   $("view-guesser").style.display   = role === "guesser"   ? "block" : "none";
   $("view-observer").style.display  = role === "observer"  ? "block" : "none";
 
   if (role === "explainer") {
-    $("word-display").textContent       = data.wordPool[game.wordIdx] || "—";
-    $("controls-active").style.display  = "flex";
-    $("last-word-zone").style.display   = "none";
+    $("word-display").textContent = data.wordPool[game.wordIdx] || "—";
   }
   if (role === "observer") {
-    if (cfg.mode === "solo") {
-      $("observer-chip").textContent = "Ти суддя";
-      $("observer-msg").textContent  =
-        `${round.explainer} пояснює → ${round.guesser} відгадує`;
-    } else {
-      $("observer-chip").textContent = "Ти відпочиваєш";
-      $("observer-msg").textContent  = `Грає команда ${round.team}`;
-    }
+    $("observer-chip").textContent = cfg.mode === "solo" ? "Ти суддя" : "Ти відпочиваєш";
+    $("observer-msg").textContent  = cfg.mode === "solo"
+      ? `${round.explainer} → ${round.guesser}`
+      : `Грає команда ${round.team}`;
   }
 
   $("stat-correct").textContent = game.roundCorrect || 0;
@@ -620,28 +468,26 @@ function renderRound(data) {
   renderLog(game.roundLog || []);
   renderScores(game.scores, "round-scores", cfg.scoreLimit);
 
-  // Хост запускає таймер
   if (isHost && !timerHandle) startHostTimer(cfg.roundTime);
 }
 
-// ─── Таймер (тільки хост) ─────────────────────────────────────────────────────
 function startHostTimer(roundTime) {
   stopTimer();
   timerHandle = setInterval(async () => {
-    const cfgSnap = await get(ref(db, `rooms/${currentRoom}/config`));
+    const cfgSnap = await db.ref(`rooms/${currentRoom}/config`).get();
     const cfg = cfgSnap.val();
     if (!cfg || cfg.status !== "playing") { stopTimer(); return; }
 
-    const gSnap = await get(ref(db, `rooms/${currentRoom}/game`));
+    const gSnap = await db.ref(`rooms/${currentRoom}/game`).get();
     const game  = gSnap.val();
     if (!game) { stopTimer(); return; }
 
     if (game.timer <= 1) {
       stopTimer();
-      await update(ref(db, `rooms/${currentRoom}/game`),   { timer: 0 });
-      await update(ref(db, `rooms/${currentRoom}/config`), { status: "lastword" });
+      await db.ref(`rooms/${currentRoom}/game`).update({ timer: 0 });
+      await db.ref(`rooms/${currentRoom}/config`).update({ status: "lastword" });
     } else {
-      await update(ref(db, `rooms/${currentRoom}/game`), { timer: game.timer - 1 });
+      await db.ref(`rooms/${currentRoom}/game`).update({ timer: game.timer - 1 });
     }
   }, 1000);
 }
@@ -650,40 +496,30 @@ function stopTimer() {
   if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
 }
 
-// ─── Кнопки ведучого ─────────────────────────────────────────────────────────
-$("correct-btn").onclick      = () => doScore(true);
-$("skip-btn").onclick         = () => doScore(false);
-$("last-correct-btn").onclick = () => doLastWord(true);
-$("last-no-btn").onclick      = () => doLastWord(false);
-$("lw-yes-btn").onclick       = () => doLastWord(true);
-$("lw-no-btn").onclick        = () => doLastWord(false);
+$("correct-btn").onclick = () => doScore(true);
+$("skip-btn").onclick    = () => doScore(false);
 
 async function doScore(correct) {
-  const snap = await get(ref(db, `rooms/${currentRoom}`));
-  const data = snap.val();
-  const cfg  = data.config;
-  const game = data.game;
+  const snap  = await db.ref(`rooms/${currentRoom}`).get();
+  const data  = snap.val();
+  const cfg   = data.config;
+  const game  = data.game;
   const round = getRound(game, cfg.mode);
   const word  = data.wordPool[game.wordIdx];
 
-  const scores = applyScore({ ...game.scores }, correct, round, cfg.mode);
-  const log    = [...(game.roundLog || []), { word, result: correct ? "correct" : "skip" }];
-
+  const scores      = applyScore({ ...game.scores }, correct, round, cfg.mode);
+  const log         = [...(game.roundLog || []), { word, result: correct ? "correct" : "skip" }];
   const roundCorrect = (game.roundCorrect || 0) + (correct ? 1 : 0);
   const roundSkip    = (game.roundSkip    || 0) + (correct ? 0 : 1);
   const nextWordIdx  = (game.wordIdx + 1) % data.wordPool.length;
 
-  // Перевірка ліміту балів
-  if (checkScoreLimit(scores, cfg.scoreLimit)) {
-    await update(ref(db, `rooms/${currentRoom}/game`),
-      { scores, roundLog: log, roundCorrect, roundSkip });
-    await endGame();
-    return;
-  }
-
-  await update(ref(db, `rooms/${currentRoom}/game`), {
+  await db.ref(`rooms/${currentRoom}/game`).update({
     scores, roundLog: log, roundCorrect, roundSkip, wordIdx: nextWordIdx
   });
+
+  if (checkScoreLimit(scores, cfg.scoreLimit)) {
+    await endGame();
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -697,36 +533,38 @@ function renderLastWord(data) {
   const game  = data.game;
   const round = getRound(game, cfg.mode);
   const role  = getMyRole(round, cfg.mode);
+  const isExp = role === "explainer";
 
-  $("lw-view-explainer").style.display = role === "explainer" ? "block" : "none";
-  $("lw-view-other").style.display     = role !== "explainer" ? "block" : "none";
+  $("lw-view-explainer").style.display = isExp ? "block" : "none";
+  $("lw-view-other").style.display     = isExp ? "none"  : "block";
 
-  if (role === "explainer") {
+  if (isExp) {
     $("lw-word").textContent = data.wordPool[game.wordIdx] || "—";
   } else {
     renderScores(game.scores, "lw-scores", cfg.scoreLimit);
   }
 }
 
+$("lw-yes-btn").onclick = () => doLastWord(true);
+$("lw-no-btn").onclick  = () => doLastWord(false);
+
 async function doLastWord(correct) {
   if (correct) {
-    const snap = await get(ref(db, `rooms/${currentRoom}`));
-    const data = snap.val();
-    const cfg  = data.config;
-    const game = data.game;
+    const snap  = await db.ref(`rooms/${currentRoom}`).get();
+    const data  = snap.val();
+    const cfg   = data.config;
+    const game  = data.game;
     const round = getRound(game, cfg.mode);
     const word  = data.wordPool[game.wordIdx];
 
     const scores = applyScore({ ...game.scores }, true, round, cfg.mode);
     const log    = [...(game.roundLog || []), { word, result: "correct" }];
-    const roundCorrect = (game.roundCorrect || 0) + 1;
 
-    await update(ref(db, `rooms/${currentRoom}/game`),
-      { scores, roundLog: log, roundCorrect });
+    await db.ref(`rooms/${currentRoom}/game`).update({
+      scores, roundLog: log, roundCorrect: (game.roundCorrect || 0) + 1
+    });
 
-    if (checkScoreLimit(scores, cfg.scoreLimit)) {
-      await endGame(); return;
-    }
+    if (checkScoreLimit(scores, cfg.scoreLimit)) { await endGame(); return; }
   }
   await finishRound();
 }
@@ -735,34 +573,28 @@ async function doLastWord(correct) {
 // ЗАВЕРШЕННЯ РАУНДУ / ГРИ
 // ══════════════════════════════════════════════════════════════════════════════
 async function finishRound() {
-  const snap = await get(ref(db, `rooms/${currentRoom}`));
+  const snap = await db.ref(`rooms/${currentRoom}`).get();
   const data = snap.val();
   const cfg  = data.config;
   const game = data.game;
 
-  // Перевірка ліміту раундів (командний)
-  if (cfg.mode === "team") {
-    const isLastRound = (game.cursor || 0) >= game.schedule.length - 1;
-    if (isLastRound) { await endGame(); return; }
+  if (cfg.mode === "team" && (game.cursor || 0) >= game.schedule.length - 1) {
+    await endGame(); return;
   }
 
-  // Скидаємо стан раунду
-  await update(ref(db, `rooms/${currentRoom}/game`), {
-    roundCorrect: 0,
-    roundSkip:    0,
-    roundLog:     [],
-    timer:        cfg.roundTime,
+  await db.ref(`rooms/${currentRoom}/game`).update({
+    roundCorrect: 0, roundSkip: 0, roundLog: [], timer: cfg.roundTime
   });
-  await update(ref(db, `rooms/${currentRoom}/config`), { status: "result" });
+  await db.ref(`rooms/${currentRoom}/config`).update({ status: "result" });
 }
 
 async function endGame() {
   stopTimer();
-  await update(ref(db, `rooms/${currentRoom}/config`), { status: "final" });
+  await db.ref(`rooms/${currentRoom}/config`).update({ status: "final" });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// РЕЗУЛЬТАТ РАУНДУ
+// РЕЗУЛЬТАТ
 // ══════════════════════════════════════════════════════════════════════════════
 function renderResult(data) {
   showScreen("screen-result");
@@ -773,32 +605,26 @@ function renderResult(data) {
   const isHost = cfg.host === myName;
   const round  = getRound(game, cfg.mode);
 
-  let detail = `<div class="result-pair">`;
-  if (cfg.mode === "solo") {
-    detail += `<span>${round.explainer} пояснював</span><span>→</span><span>${round.guesser} відгадував</span>`;
-  } else {
-    detail += `<span>Команда <b>${round.team}</b></span><span></span><span></span>`;
-  }
-  detail += `</div>
+  $("result-detail").innerHTML = `
+    <div class="result-pair">
+      ${cfg.mode === "solo"
+        ? `<span>${round.explainer}</span><span>→</span><span>${round.guesser}</span>`
+        : `<span>Команда <b>${round.team}</b></span><span></span><span></span>`}
+    </div>
     <div class="result-stats-row">
       <span class="res-correct">✅ ${game.roundCorrect || 0} вгадано</span>
       <span class="res-skip">❌ ${game.roundSkip || 0} пропуск</span>
     </div>`;
 
-  $("result-detail").innerHTML = detail;
   renderScores(game.scores, "result-scores", cfg.scoreLimit);
-
   $("result-host-btn").style.display  = isHost ? "block" : "none";
   $("result-guest-wait").style.display = isHost ? "none"  : "block";
 }
 
 $("next-round-btn").onclick = async () => {
-  const snap = await get(ref(db, `rooms/${currentRoom}/game`));
-  const game = snap.val();
-  await update(ref(db, `rooms/${currentRoom}/game`), {
-    cursor: (game.cursor || 0) + 1
-  });
-  await update(ref(db, `rooms/${currentRoom}/config`), { status: "briefing" });
+  const snap = await db.ref(`rooms/${currentRoom}/game`).get();
+  await db.ref(`rooms/${currentRoom}/game`).update({ cursor: (snap.val().cursor || 0) + 1 });
+  await db.ref(`rooms/${currentRoom}/config`).update({ status: "briefing" });
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -808,22 +634,19 @@ function renderFinal(data) {
   showScreen("screen-final");
   stopTimer();
 
-  const game   = data.game;
-  const scores = game.scores || {};
+  const scores = data.game.scores || {};
   const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
   const winner = sorted[0];
-
   $("final-winner").textContent       = winner ? winner[0] : "—";
   $("final-winner-score").textContent = winner ? `${winner[1]} балів` : "";
   renderScores(scores, "final-scores", data.config?.scoreLimit);
 }
 
 $("play-again-btn").onclick = async () => {
-  await update(ref(db, `rooms/${currentRoom}/config`), { status: "lobby" });
-  await remove(ref(db, `rooms/${currentRoom}/game`));
+  await db.ref(`rooms/${currentRoom}/config`).update({ status: "lobby" });
+  await db.ref(`rooms/${currentRoom}/game`).remove();
 };
-
-$("leave-final-btn").onclick = () => leaveRoom();
+$("leave-final-btn").onclick = leaveRoom;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ВИХІД
@@ -836,33 +659,30 @@ async function leaveRoom() {
   if (roomUnsub) { roomUnsub(); roomUnsub = null; }
   if (!currentRoom || !myName) { goHome(); return; }
 
-  await remove(ref(db, `rooms/${currentRoom}/players/${myName}`));
+  await db.ref(`rooms/${currentRoom}/players/${myName}`).remove();
 
-  const pSnap = await get(ref(db, `rooms/${currentRoom}/players`));
+  const pSnap    = await db.ref(`rooms/${currentRoom}/players`).get();
   const remaining = Object.keys(pSnap.val() || {});
 
   if (remaining.length === 0) {
-    // Останній — видаляємо кімнату повністю
-    await remove(ref(db, `rooms/${currentRoom}`));
-    await remove(ref(db, `lobby/${currentRoom}`));
+    await db.ref(`rooms/${currentRoom}`).remove();
+    await db.ref(`lobby/${currentRoom}`).remove();
   } else {
-    // Передаємо хост якщо потрібно
-    const cfgSnap = await get(ref(db, `rooms/${currentRoom}/config`));
+    const cfgSnap = await db.ref(`rooms/${currentRoom}/config`).get();
     const cfg = cfgSnap.val();
     if (cfg?.host === myName) {
-      await update(ref(db, `rooms/${currentRoom}/config`), { host: remaining[0] });
+      await db.ref(`rooms/${currentRoom}/config/host`).set(remaining[0]);
     }
-    await update(ref(db, `lobby/${currentRoom}`), { players: remaining.length });
+    await db.ref(`lobby/${currentRoom}/players`).set(remaining.length);
   }
-
   goHome();
 }
 
 function goHome() {
   stopTimer();
   if (roomUnsub) { roomUnsub(); roomUnsub = null; }
-  myName      = "";
-  currentRoom = "";
+  myName = ""; currentRoom = "";
+  loadRoomList();
   showScreen("screen-home");
 }
 
@@ -871,17 +691,15 @@ function goHome() {
 // ══════════════════════════════════════════════════════════════════════════════
 function getRound(game, mode) {
   const cursor = game.cursor || 0;
-  if (mode === "solo") {
-    return game.schedule[cursor % game.schedule.length];
-  }
-  return game.schedule[Math.min(cursor, game.schedule.length - 1)];
+  const len    = game.schedule.length;
+  return mode === "solo"
+    ? game.schedule[cursor % len]
+    : game.schedule[Math.min(cursor, len - 1)];
 }
 
 function getMyRole(round, mode) {
   if (round.explainer === myName) return "explainer";
-  if (mode === "solo") {
-    return round.guesser === myName ? "guesser" : "observer";
-  }
+  if (mode === "solo") return round.guesser === myName ? "guesser" : "observer";
   return (round.guessers || []).includes(myName) ? "guesser" : "observer";
 }
 
@@ -894,12 +712,8 @@ function applyScore(scores, correct, round, mode) {
       scores[round.team] = (scores[round.team] || 0) + 1;
     }
   } else {
-    // Пропуск: -1 тільки ведучому/команді
-    if (mode === "solo") {
-      scores[round.explainer] = (scores[round.explainer] || 0) - 1;
-    } else {
-      scores[round.team] = (scores[round.team] || 0) - 1;
-    }
+    if (mode === "solo") scores[round.explainer] = (scores[round.explainer] || 0) - 1;
+    else                 scores[round.team]       = (scores[round.team]      || 0) - 1;
   }
   return scores;
 }
@@ -913,18 +727,13 @@ function renderScores(scores, targetId, scoreLimit) {
   if (!scores || !el) return;
   const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
   el.innerHTML = sorted.map(([name, score], i) => {
-    const pct     = scoreLimit ? Math.min(score / scoreLimit * 100, 100) : 0;
+    const pct      = scoreLimit ? Math.max(0, Math.min(score / scoreLimit * 100, 100)) : 0;
     const isLeader = i === 0 && score > 0;
     return `
       <div class="score-row${isLeader ? " score-leader" : ""}">
-        <span class="score-name">
-          ${name}${name === myName ? ` <em>(ти)</em>` : ""}
-        </span>
+        <span class="score-name">${name}${name === myName ? ` <em>(ти)</em>` : ""}</span>
         <div class="score-right">
-          ${scoreLimit ? `
-            <div class="score-bar-wrap">
-              <div class="score-bar" style="width:${pct}%"></div>
-            </div>` : ""}
+          ${scoreLimit ? `<div class="score-bar-wrap"><div class="score-bar" style="width:${pct}%"></div></div>` : ""}
           <span class="score-val">${score}</span>
           ${scoreLimit ? `<span class="score-limit-lbl">/${scoreLimit}</span>` : ""}
         </div>
@@ -941,3 +750,6 @@ function renderLog(log) {
     </div>`
   ).join("");
 }
+
+// Завантажуємо кімнати при старті
+loadRoomList();
