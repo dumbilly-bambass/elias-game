@@ -898,7 +898,7 @@ function renderRound(data) {
   $("view-observer").style.display  = role === "observer"  ? "block" : "none";
 
   if (role === "explainer") {
-    $("word-display").textContent = data.wordPool[game.wordIdx] || "—";
+    $("word-display").textContent = (data.wordPool || [])[game.wordIdx] || "—";
   }
   if (role === "observer") {
     $("observer-chip").textContent = cfg.mode === "solo" ? "Ти суддя" : "Ти відпочиваєш";
@@ -944,24 +944,24 @@ $("correct-btn").onclick = () => doScore(true);
 $("skip-btn").onclick    = () => doScore(false);
 
 async function doScore(correct) {
-  const snap  = await db.ref(`rooms/${currentRoom}`).get();
-  const data  = snap.val();
-  const cfg   = data.config;
-  const game  = data.game;
-  const round = getRound(game, cfg.mode);
-  const word  = data.wordPool[game.wordIdx];
+  const snap     = await db.ref(`rooms/${currentRoom}`).get();
+  const data     = snap.val();
+  const cfg      = data.config;
+  const game     = data.game;
+  const wordPool = data.wordPool; // wordPool живе в корені кімнати, не в game
+  const round    = getRound(game, cfg.mode);
+  const word     = wordPool[game.wordIdx];
 
   const scores       = applyScore({ ...game.scores }, correct, round, cfg.mode);
   const log          = [...(game.roundLog || []), { word, result: correct ? "correct" : "skip" }];
   const roundCorrect = (game.roundCorrect || 0) + (correct ? 1 : 0);
   const roundSkip    = (game.roundSkip    || 0) + (correct ? 0 : 1);
-  const nextWordIdx  = advanceWordIdx(game); // без повторень, з reshuffleom
+  const { nextIdx, newPool } = advanceWordIdx(wordPool, game.wordIdx);
 
-  await db.ref(`rooms/${currentRoom}/game`).update({
-    scores, roundLog: log, roundCorrect, roundSkip,
-    wordIdx: nextWordIdx,
-    wordPool: game.wordPool // якщо reshuffle — зберігаємо новий порядок
-  });
+  const gameUpdate = { scores, roundLog: log, roundCorrect, roundSkip, wordIdx: nextIdx };
+  await db.ref(`rooms/${currentRoom}/game`).update(gameUpdate);
+  // Якщо пул перемішали — зберігаємо новий порядок в корені
+  if (newPool) await db.ref(`rooms/${currentRoom}/wordPool`).set(newPool);
 
   if (checkScoreLimit(scores, cfg.scoreLimit)) {
     await endGame();
@@ -985,7 +985,7 @@ function renderLastWord(data) {
   $("lw-view-other").style.display     = isExp ? "none"  : "block";
 
   if (isExp) {
-    $("lw-word").textContent = data.wordPool[game.wordIdx] || "—";
+    $("lw-word").textContent = (data.wordPool || [])[game.wordIdx] || "—";
   } else {
     renderScores(game.scores, "lw-scores", cfg.scoreLimit);
   }
@@ -995,34 +995,31 @@ $("lw-yes-btn").onclick = () => doLastWord(true);
 $("lw-no-btn").onclick  = () => doLastWord(false);
 
 async function doLastWord(correct) {
-  const snap  = await db.ref(`rooms/${currentRoom}`).get();
-  const data  = snap.val();
-  const cfg   = data.config;
-  const game  = data.game;
-  const round = getRound(game, cfg.mode);
+  const snap     = await db.ref(`rooms/${currentRoom}`).get();
+  const data     = snap.val();
+  const cfg      = data.config;
+  const game     = data.game;
+  const wordPool = data.wordPool;
+  const round    = getRound(game, cfg.mode);
 
   // Завжди просуваємо wordIdx — щоб наступна пара отримала нове слово
-  const nextWordIdx = advanceWordIdx(game);
+  const { nextIdx, newPool } = advanceWordIdx(wordPool, game.wordIdx);
+  if (newPool) await db.ref(`rooms/${currentRoom}/wordPool`).set(newPool);
 
   if (correct) {
-    const word   = data.wordPool[game.wordIdx];
+    const word   = wordPool[game.wordIdx];
     const scores = applyScore({ ...game.scores }, true, round, cfg.mode);
     const log    = [...(game.roundLog || []), { word, result: "correct" }];
 
     await db.ref(`rooms/${currentRoom}/game`).update({
       scores, roundLog: log,
       roundCorrect: (game.roundCorrect || 0) + 1,
-      wordIdx: nextWordIdx,
-      wordPool: game.wordPool // зберігаємо оновлений пул якщо перемішали
+      wordIdx: nextIdx,
     });
 
     if (checkScoreLimit(scores, cfg.scoreLimit)) { await endGame(); return; }
   } else {
-    // Не вгадали — просто просуваємо слово
-    await db.ref(`rooms/${currentRoom}/game`).update({
-      wordIdx: nextWordIdx,
-      wordPool: game.wordPool
-    });
+    await db.ref(`rooms/${currentRoom}/game`).update({ wordIdx: nextIdx });
   }
   await finishRound();
 }
@@ -1213,18 +1210,16 @@ function renderLog(log) {
 loadRoomList();
 
 // ─── Просування wordIdx без повторень ────────────────────────────────────────
-// Якщо дійшли до кінця пулу — перемішуємо заново (гарантуємо що перше слово
-// нового циклу не збігається з останнім словом попереднього)
-function advanceWordIdx(game) {
-  const pool = game.wordPool;
-  const next = (game.wordIdx + 1);
-  if (next < pool.length) return next;
-  // Кінець пулу — перемішуємо. Повертаємо 0, але сам пул оновлюємо в game
-  const reshuffled = shuffle(pool);
-  // Якщо перший елемент збігається з останнім показаним — міняємо місцями з другим
-  if (reshuffled[0] === pool[pool.length - 1] && reshuffled.length > 1) {
+// Повертає { nextIdx, newPool } де newPool != null тільки якщо пул перемішано
+function advanceWordIdx(wordPool, currentIdx) {
+  const next = currentIdx + 1;
+  if (next < wordPool.length) return { nextIdx: next, newPool: null };
+  // Кінець пулу — перемішуємо
+  const reshuffled = shuffle(wordPool);
+  // Перше слово нового циклу не має збігатись з останнім попереднього
+  const lastWord = wordPool[wordPool.length - 1];
+  if (reshuffled[0] === lastWord && reshuffled.length > 1) {
     [reshuffled[0], reshuffled[1]] = [reshuffled[1], reshuffled[0]];
   }
-  game.wordPool = reshuffled; // мутуємо об'єкт — буде збережено в Firebase
-  return 0;
+  return { nextIdx: 0, newPool: reshuffled };
 }
